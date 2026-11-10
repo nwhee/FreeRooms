@@ -1,0 +1,32 @@
+validateSchedule ok: true 
+bytes 1229013 minified true generatedAt 2026-11-10T03:00:54.083Z schemaVersion 1
+rooms 572 meetings 8456 buildings 70 campuses BOS:388 ARL:9 BRL:1 CHL:2 MIA:6 NAH:1 NYC:60 OAK:44 PTL:17 SEA:16 SJO:12 TOR:8 VAN:8
+DK rooms DK-030/BOS, DK-032/BOS, DK-040/BOS, DK-042/BOS, DK-044/BOS, DK-046/BOS, DK-104/BOS, DK-160/BOS, DK-220/BOS, DK-230/BOS, DK-240/BOS, DK-250/BOS
+partOfTerm counts {"1":8120,"2A":149,"2B":116,"1L":71}
+terms [{"code":"202710","description":"Fall 2026 Semester","startDate":"2026-09-02","endDate":"2026-12-20","partsOfTerm":["1:2026-09-09..2026-12-20","1L:2026-09-02..2026-12-20","2A:2026-09-09..2026-10-25","2B:2026-10-24..2026-12-20"],"meetingCount":7307,"roomedMeetingCount":7010},{"code":"202730","description":"Spring 2027 Semester","startDate":"2027-01-04","endDate":"2027-05-02","partsOfTerm":["1:2027-01-04..2027-05-02","2A:2027-01-13..2027-02-27","2B:2027-03-15..2027-05-02","3C:2027-03-29..2027-05-02"],"meetingCount":5719,"roomedMeetingCount":2297}]
+warnings ["Building RG has sections from campuses BOS, OAK; assigned BOS.","Building XCR has sections from campuses BOS, PTL; assigned BOS."]
+calendar keys [ 'termYears', 'noClassDates', 'examPeriods' ]
+emails none '@' count 0
+all keys building,buildingCount,buildings,calendar,campus,campuses,code,days,description,displayName,end,endDate,examPeriods,generatedAt,id,label,meetingCount,meetings,name,noClassDates,partOfTerm,partsOfTerm,room,roomCount,roomId,roomedMeetingCount,rooms,schemaVersion,start,startDate,termCode,termYears,terms,timezone,warnings
+faculty/instructor substrings true
+implausible meetings (outside 06:00-23:00, >6h, outside term): 21
+meetings before 07:00 or after 22:00: 39
+meetings with unknown roomId 0 rooms with no meetings 0
+room.campus != building.campus 0
+ROOM {"id":"DK-230","campus":"BOS","building":"DK","room":"230","displayName":"Dockser Hall 230"} meetings=35
+   sample: SU 10:00-12:30 2027-01-22..2027-01-24 part 1 term 202730
+ROOM {"id":"WVF-020","campus":"BOS","building":"WVF","room":"020","displayName":"West Village F 020"} meetings=13
+   sample: F 13:00-15:00 2026-12-18..2026-12-18 part 1 term 202710
+ROOM {"id":"NY-CH-GHE","campus":"NYC","building":"NY-CH","room":"GHE","displayName":"Carson Hall GHE"} meetings=13
+   sample: MTWRF 08:30-09:50 2026-09-09..2026-12-20 part 1 term 202710
+ROOM {"id":"DK-240","campus":"BOS","building":"DK","room":"240","displayName":"Dockser Hall 240"} meetings=26
+   sample: T 09:30-11:30 2026-09-07..2026-12-04 part 1L term 202710
+ROOM {"id":"SH-205","campus":"BOS","building":"SH","room":"205","displayName":"Shillman Hall 205"} meetings=12
+   sample: W 11:45-12:50 2026-09-09..2026-12-13 part 1 term 202710
+MEETING FR-151 T 11:45-13:25 2026-09-09..2026-12-13 part 1 term 202710
+MEETING RY-157 W 14:50-16:30 2026-09-09..2026-12-20 part 1 term 202710
+MEETING EL-410 TF 09:50-11:30 2027-01-13..2027-05-02 part 1 term 202730
+MEETING RI-440 F 15:25-17:05 2027-01-13..2027-05-02 part 1 term 202730
+MEETING EXP-311 W 16:35-19:55 2026-09-09..2026-12-13 part 1 term 202710
+CPS samples [{"roomId":"225-216","days":1,"start":1080,"end":1245,"startDate":"2026-09-09","endDate":"2026-10-25","partOfTerm":"2A","termCode":"202710"},{"roomId":"225-305","days":1,"start":1080,"end":1245,"startDate":"2026-11-02","endDate":"2026-12-20","partOfTerm":"2B","termCode":"202710"},{"roomId":"225-306","days":16,"start":1080,"end":1200,"startDate":"2026-09-09","endDate":"2026-10-25","partOfTerm":"2A","termCode":"202710"}]
+DK samples [{"roomId":"DK-030","days":8,"start":570,"end":690,"startDate":"2026-09-03","endDate":"2026-09-03","partOfTerm":"1L","termCode":"202710"},{"roomId":"DK-030","days":16,"start":540,"end":725,"startDate":"2026-09-09","endDate":"2026-12-04","partOfTerm":"1","termCode":"202710"},{"roomId":"DK-030","days":10,"start":590,"end":685,"startDate":"2026-09-09","endDate":"2026-12-04","partOfTerm":"1","termCode":"202710"}]

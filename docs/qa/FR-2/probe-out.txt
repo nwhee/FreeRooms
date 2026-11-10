@@ -1,0 +1,89 @@
+OK   transition 12-21 (600+150 -> 160): exit=0 fileChanged=true
+       Terms: 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 160 | meetings 160
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-Cr5zda/schedule.json (39676 bytes).
+OK   transition 12-21, Fall now View Only: exit=0 fileChanged=true
+       Terms: 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 160 | meetings 160
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-Z6HEPP/schedule.json (39676 bytes).
+OK   room-drop 202730 150 -> 70: exit=1 fileChanged=false
+       Error: Term 202730 Spring 2027 Semester has meetings in 70 rooms, down from 150 (below 50%). Use --force if this is expected.
+       Existing output left untouched.
+OK   room-drop 150 -> 70 --force: exit=0 fileChanged=true
+       ::warning::Term 202710 Fall 2026 Semester returned no sections.
+       ::warning::--force overrode: Term 202730 Spring 2027 Semester has meetings in 70 rooms, down from 150 (below 50%). Use --force if this is expected.
+       Terms: 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 70 | meetings 70
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-9xCZzt/schedule.json (19465 bytes).
+OK   room-drop boundary 150 -> 75 (exactly 50%): exit=0 fileChanged=true
+       ::warning::Term 202710 Fall 2026 Semester returned no sections.
+       Terms: 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 75 | meetings 75
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-kX7waS/schedule.json (20446 bytes).
+OK   room-drop boundary 150 -> 74: exit=1 fileChanged=false
+       Error: Term 202730 Spring 2027 Semester has meetings in 74 rooms, down from 150 (below 50%). Use --force if this is expected.
+       Existing output left untouched.
+OK   room-drop under --dry-run: exit=1 fileChanged=false
+       Error: Term 202730 Spring 2027 Semester has meetings in 70 rooms, down from 150 (below 50%). Use --force if this is expected.
+       Existing output left untouched.
+OK   room-drop --force --dry-run (writes nothing): exit=0 fileChanged=false
+       ::warning::Term 202710 Fall 2026 Semester returned no sections.
+       ::warning::--force overrode: Term 202730 Spring 2027 Semester has meetings in 70 rooms, down from 150 (below 50%). Use --force if this is expected.
+       Terms: 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 70 | meetings 70
+       Dry run; not writing.
+OK   vanished: totalCount 0 for 202710: exit=1 fileChanged=false
+       Error: Term 202710 Fall 2026 Semester returned 0 sections, but the existing file has it running until 2026-12-20. Use --force if this is expected.
+       Existing output left untouched.
+OK   vanished: totalCount 0 --force: exit=0 fileChanged=true
+       ::warning::--force overrode: Term 202710 Fall 2026 Semester returned 0 sections, but the existing file has it running until 2026-12-20. Use --force if this is expected.
+       Terms: 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 30 | meetings 30
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-K0XbWp/schedule.json (10471 bytes).
+OK   vanished: 202710 absent from getTerms (Banner still has rows if asked): exit=0 fileChanged=false
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 70 | meetings 70
+       No change; not writing.
+OK   vanished: 202710 absent from getTerms, no rows: exit=1 fileChanged=false
+       Error: Term 202710 Fall 2026 Semester returned 0 sections, but the existing file has it running until 2026-12-20. Use --force if this is expected.
+       Existing output left untouched.
+OK   vanished: absent --force: exit=0 fileChanged=true
+       ::warning::--force overrode: Term 202710 Fall 2026 Semester returned 0 sections, but the existing file has it running until 2026-12-20. Use --force if this is expected.
+       Terms: 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 30 | meetings 30
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-yBoa35/schedule.json (10471 bytes).
+OK   not vanished on 12-21 (202710 ended 12-20, absent): exit=0 fileChanged=true
+       Terms: 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 30 | meetings 30
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-cRSiAS/schedule.json (10312 bytes).
+OK   campus renamed for whole fall term: exit=1 fileChanged=false
+       Error: Term 202710 Fall 2026 Semester has meetings in 0 rooms, down from 40 (below 50%). Use --force if this is expected.
+       Existing output left untouched.
+OK   vanished under --dry-run: exit=1 fileChanged=false
+       Error: Term 202710 Fall 2026 Semester returned 0 sections, but the existing file has it running until 2026-12-20. Use --force if this is expected.
+       Existing output left untouched.
+OK   write rule same content, 47 h old: exit=0 fileChanged=false
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 20 | meetings 20
+       No change; not writing.
+OK   write rule same content, 48 h old: exit=0 fileChanged=true
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 20 | meetings 20
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-s1cj6D/schedule.json (8252 bytes).
+OK   write rule same content, 49 h old: exit=0 fileChanged=true
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 20 | meetings 20
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-H1TDe7/schedule.json (8252 bytes).
+OK   write rule changed content (11 fall rooms): exit=0 fileChanged=true
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 21 | meetings 21
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-ipULK6/schedule.json (8476 bytes).
+       leak check: SHOULD NOT LEAK=false Prof=false @=false
+       rooms sorted=true minified=true
+OK   dry-run, absent file stays absent: exit=0 fileChanged=false
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 20 | meetings 20
+       Dry run; not writing.
+OK   existing file is not JSON (guards skipped, replaced): exit=0 fileChanged=true
+       ::warning::Existing /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-1MIMMg/schedule.json is not a valid schedule (it is not JSON); comparison guards skipped.
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 20 | meetings 20
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-1MIMMg/schedule.json (8408 bytes).
+OK   new term 202735 with 0 sections: exit=0 fileChanged=true
+       ::warning::Term 202735 Spring 2027 Law returned no sections.
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 20 | meetings 20
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-Wuoc08/schedule.json (8303 bytes).
+FAIL --today 2026-13-45: exit=0 fileChanged=true
+       Terms: 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 10 | meetings 10
+       Wrote /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa-fr2-35yr7T/schedule.json (5832 bytes).
+OK   --delay-ms 1000 accepted: exit=0 fileChanged=false
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 20 | meetings 20
+       Dry run; not writing.
+OK   missing calendar dir: exit=0 fileChanged=false
+       Terms: 202710 Fall 2026 Semester (2026-09-02..2026-12-20, 100% roomed), 202730 Spring 2027 Semester (2027-01-13..2027-05-02, 100% roomed) | campuses 1 | buildings 1 | rooms 20 | meetings 20
+       Dry run; not writing.
