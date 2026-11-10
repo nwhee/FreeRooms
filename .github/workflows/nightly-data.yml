@@ -8,8 +8,9 @@
 #   fetch           contents: read   npm ci + fetch (runs third-party npm code, so no write access)
 #   publish         contents: write  commits schedule.json to `data` (runs no npm code)
 #   calendar-issue  issues: write    opens, updates or closes the `calendar-missing` issue
-# `publish` and `calendar-issue` only run when the run publishes: always for the
-# schedule, and for workflow_dispatch only when the `publish` input is true.
+# `publish` and `calendar-issue` only run when the run publishes: only on main, always
+# for the schedule, and for workflow_dispatch only when the `publish` input is true.
+# Any other run is a test run that prints what it would have written.
 
 name: nightly-data
 
@@ -116,14 +117,14 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Calendar warnings: $count"
 
-      - name: Test run (publish false) - print what would be written
-        if: github.event_name == 'workflow_dispatch' && !inputs.publish
+      - name: Test run (publish false or not main) - print what would be written
+        if: ${{ !(github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.publish)) }}
         env:
           CHANGED: ${{ steps.compare.outputs.changed }}
           WARNING_COUNT: ${{ steps.calendar.outputs.count }}
         run: |
           set -euo pipefail
-          echo "publish is false: skipping the push to the data branch (changed=$CHANGED) and the calendar issue."
+          echo "Test run (publish false, or not on main): skipping the push to the data branch (changed=$CHANGED) and the calendar issue."
           echo "Calendar warnings ($WARNING_COUNT):"
           jq -r '.warnings[] | select(contains("has no academic calendar file"))' public/data/schedule.json
           if [ "$WARNING_COUNT" -gt 0 ]; then
@@ -136,17 +137,19 @@ jobs:
           fi
 
       - name: Upload schedule.json for the publish job
-        if: steps.compare.outputs.changed == 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish)
+        if: steps.compare.outputs.changed == 'true' && github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.publish)
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: schedule
           path: public/data/schedule.json
           if-no-files-found: error
+          # Kept 1 day: re-running only the publish job more than a day later finds no
+          # artifact, so use "Re-run all jobs" instead.
           retention-days: 1
 
   publish:
     needs: fetch
-    if: needs.fetch.outputs.changed == 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish)
+    if: needs.fetch.outputs.changed == 'true' && github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.publish)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -198,7 +201,7 @@ jobs:
 
   calendar-issue:
     needs: fetch
-    if: github.event_name != 'workflow_dispatch' || inputs.publish
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.publish)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

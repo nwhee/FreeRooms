@@ -47,6 +47,11 @@ The script exits 1 and leaves the existing file untouched when anything looks wr
 a failed request, an incomplete term, a validation error, or a guard tripping. Warnings
 (printed as `::warning::...`) never fail the run.
 
+**Fake room codes:** Banner lists some "rooms" that aren't classrooms (`DEPT`, `TBA`,
+`OS1`…). They're dropped using the deny-list in `scripts/fetch-data/placeholder-rooms.json`.
+To drop a new kind, add a case-insensitive regex to its `roomPatterns` array (for example
+`"^ONLINE$"`). It's a data change, not a code change.
+
 **Without a local fetch,** point the app at the published data instead. Put this in
 `.env.local` and restart `npm run dev`:
 
@@ -56,11 +61,12 @@ NEXT_PUBLIC_DATA_URL=https://raw.githubusercontent.com/nwhee/FreeRooms/data/sche
 
 ## Nightly update
 
-> **Before you enable the schedule:** check Banner's `robots.txt`
+> **Before you push this workflow to `main` on GitHub:** check Banner's `robots.txt`
 > (`https://nubanner.neu.edu/robots.txt`) and Northeastern's acceptable-use policy for
 > IT resources, and make sure a nightly automated read of the public class search is
-> allowed. The schedule starts as soon as the workflow file is on `main`. Until you've
-> checked, disable it under **Actions → nightly-data → ⋯ → Disable workflow**.
+> allowed. **Pushing `.github/workflows/nightly-data.yml` to `main` on GitHub starts the
+> nightly runs.** There's no separate switch, so do the check first. To pause it later,
+> use **Actions → nightly-data → ⋯ → Disable workflow**.
 
 **When it runs:** every day at 08:00 UTC (03:00 EST / 04:00 EDT), from
 `.github/workflows/nightly-data.yml`. One run at a time: an overlapping run waits in a
@@ -68,7 +74,7 @@ queue, and nothing gets cancelled.
 
 **What it does:**
 
-1. Checks out `main` and runs `npm ci`.
+1. Checks out the triggering ref (`main` for the nightly run) and runs `npm ci`.
 2. Copies the current `schedule.json` from the `data` branch into
    `public/data/schedule.json`, so the fetch script can compare against it. On the very
    first run there's no `data` branch yet, and this step is skipped.
@@ -116,11 +122,12 @@ about a day or more, so a red run should be fixed within a day or two.
 
 **Running it by hand:** **Actions → nightly-data → Run workflow**, pick a branch, then:
 
-- **`publish` ticked** (the default): a real run. It pushes to `data` and updates the
-  issue, exactly like the nightly run.
-- **`publish` unticked:** a test run. It fetches and checks everything, but it doesn't
-  push to `data` and doesn't touch issues. It prints the calendar warnings and the issue
-  body it would have written. Use this to try out workflow changes on a branch.
+- **`publish` ticked** (the default) **on `main`:** a real run. It pushes to `data` and
+  updates the issue, exactly like the nightly run.
+- **`publish` unticked, or any branch other than `main`:** a test run. It fetches and
+  checks everything, but it doesn't push to `data` and doesn't touch issues. Only `main`
+  can publish. A test run prints the calendar warnings and the issue body it would have
+  written. Use this to try out workflow changes on a branch.
 
 **If GitHub disabled the workflow:** GitHub turns off scheduled workflows in a public
 repo after 60 days with no repository activity. It emails the owner first. Commits to
@@ -135,10 +142,11 @@ No code change is needed when Fall turns into Spring (or Spring into Summer).
 - **Terms are discovered automatically.** Each run asks Banner for its term list and
   fetches every term **not** marked "(View Only)". It also re-fetches any term in the
   existing file that hasn't ended yet, even if Banner has since marked it View Only.
-- **Date window:** a term is kept only if its meeting dates overlap **today to today +
-  120 days** (today in America/New_York). So the next semester appears as soon as Banner
-  lists it and it starts within 120 days (Spring 2027 starts 2027-01-13). The old
-  semester drops out the day after its last meeting (for Fall 2026, on 2026-12-21).
+- **Date window:** each term's range runs from its earliest to its latest meeting date
+  in Banner. A term is kept only if that range overlaps **today to today + 120 days**
+  (today in America/New_York). So the next semester appears once Banner lists it and its
+  earliest meeting is within 120 days. The old semester drops out the day after its
+  latest meeting.
 - **CPS and Law** don't need special handling. Their sections sit inside the semester
   terms (for example 202710 and 202730) and are told apart by `partOfTerm` (`1`, `1L`,
   `2A`, `2B`, `3A`…). Every part of term is kept.
@@ -162,9 +170,7 @@ show classes that aren't meeting.
    [docs/specs/FR-6.md](docs/specs/FR-6.md#source-file-shape-datacalendaryyyy-yyyyjson).
    Copy `data/calendar/2026-2027.json` as a starting point.
 3. Run `npm run check`, which loads and validates every file in `data/calendar/`, then
-   merge to `main`. Known issue: `lib/calendar/load.test.ts` currently expects
-   `2026-2027.json` to be the *only* calendar file, so that one assertion fails when you
-   add the next year. Update it in the same commit.
+   merge to `main`.
 
 **You'll be reminded.** When a fetched term has no calendar file, the nightly run opens
 a GitHub issue titled **Academic calendar file missing** (label `calendar-missing`),
