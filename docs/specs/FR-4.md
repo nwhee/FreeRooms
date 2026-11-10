@@ -1,6 +1,6 @@
 # FR-4 — Free-room logic library
 
-**Status:** draft (revision 2)
+**Status:** approved by user 2026-11-09 (revision 3)
 **Owner:** product-manager · **Approved by:** vp-product, <user>
 **Depends on:** FR-1 · **Blocks:** FR-5 · **Overview:** `docs/specs/FR-0-overview.md` (see "Definitions")
 
@@ -42,7 +42,7 @@ Each AC is one or more Vitest cases in `lib/free-rooms/*.test.ts`, using small h
   - `dayContext(BOS).noClass` is that entry, and `dayContext(TOR).noClass` is null.
 - [ ] AC7 **Range no-class:** Fall break 2026-11-25…29 suppresses recurring meetings on Nov 25 and Nov 29, but not on Nov 24 or Nov 30.
 - [ ] AC8 **One-day meetings always count:** a one-day meeting (startDate == endDate == 2026-11-11) at a BOS room is busy on that no-class date, and a one-day meeting on 2026-12-15 is busy during the exam period.
-- [ ] AC9 **Exam periods (FR-0 rule, PENDING USER DECISION):**
+- [ ] AC9 **Exam periods (FR-0 rule, DECIDED by user 2026-11-09):**
   - On 2026-12-15 (main period, `["1"]`), a recurring part `1` meeting is suppressed, while recurring `2B` and `3C` meetings still count (busy).
   - On 2026-12-08 (Law window `["1L"]` only), a `1L` meeting is suppressed and a part `1` meeting still counts.
   - `dayContext` lists every active exam period.
@@ -78,4 +78,4 @@ Each AC is one or more Vitest cases in `lib/free-rooms/*.test.ts`, using small h
 - `lib/free-rooms/*.test.ts`, `lib/free-rooms/__fixtures__/*`
 
 ## Open questions
-None of its own. This ticket implements FR-0's defaults, including the exam-period rule (PENDING USER DECISION). Suppression is data-driven through `examPeriods[].partsOfTerm`, so a different user decision changes only FR-6's data and the AC9 fixtures, not this code.
+None of its own. This ticket implements FR-0's defaults, including the exam-period rule (DECIDED by user 2026-11-09). Suppression is data-driven through `examPeriods[].partsOfTerm`.

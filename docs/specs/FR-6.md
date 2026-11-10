@@ -1,6 +1,6 @@
 # FR-6 — Academic calendar 2026-27, loader, and missing-calendar warning
 
-**Status:** draft (revision 2)
+**Status:** approved by user 2026-11-09 (revision 3)
 **Owner:** product-manager · **Approved by:** vp-product, <user>
 **Depends on:** FR-1 · **Blocks:** FR-2 · **Overview:** `docs/specs/FR-0-overview.md`
 
@@ -22,7 +22,7 @@ FR-2 calls both.
   "source": "https://registrar.northeastern.edu/wp-content/uploads/sites/9/2026-2027-Academic-Calendar.pdf",
   "sourcePostedDate": "2026-06-04",
   "noClassDates": [{ "start": "2026-09-07", "end": "2026-09-07", "label": "Labor Day", "scope": ["USA", "CAN"] }],
-  "examPeriods":  [{ "start": "2026-12-14", "end": "2026-12-20", "label": "Fall final exams", "partsOfTerm": ["1"] }]
+  "examPeriods":  [{ "start": "2026-12-14", "end": "2026-12-20", "label": "Fall final exam period", "partsOfTerm": ["1"] }]
 }
 ```
 - `scope` tokens are `ALL`, `USA`, `CAN`, or campus codes. Region membership comes from `CAMPUSES[].region` (FR-1).
@@ -51,14 +51,14 @@ FR-2 calls both.
 
 | Exam period | Label | partsOfTerm |
 |---|---|---|
-| 2026-12-14 – 2026-12-20 | Fall final exams | ["1"] |
-| 2026-12-07 – 2026-12-20 | Fall Law exams | ["1L"] |
-| 2027-04-26 – 2027-05-02 | Spring final exams | ["1"] |
-| 2027-04-20 – 2027-05-02 | Spring Law exams | ["1L"] |
-| 2027-08-16 – 2027-08-22 | Summer final exams | ["1"] |
-| 2027-08-09 – 2027-08-22 | Summer Law exams | ["1L"] |
+| 2026-12-14 – 2026-12-20 | Fall final exam period | ["1"] |
+| 2026-12-07 – 2026-12-20 | Fall Law exam period | ["1L"] |
+| 2027-04-26 – 2027-05-02 | Spring final exam period | ["1"] |
+| 2027-04-20 – 2027-05-02 | Spring Law exam period | ["1L"] |
+| 2027-08-16 – 2027-08-22 | Summer final exam period | ["1"] |
+| 2027-08-09 – 2027-08-22 | Summer Law exam period | ["1L"] |
 
-The `partsOfTerm` values follow FR-0's exam-period rule (**PENDING USER DECISION**). If the user picks a different rule, only this column changes. Fall 2026 1L meetings already end 12/04, so the Fall Law row has no effect on current data. It's kept for consistency.
+The `partsOfTerm` values follow FR-0's exam-period rule (**DECIDED by user 2026-11-09**). The labels are shown verbatim in FR-5's banner. Fall 2026 1L meetings already end 12/04, so the Fall Law row has no effect on current data. It's kept for consistency.
 
 ## Acceptance criteria
 - [ ] AC1: `data/calendar/2026-2027.json` contains exactly the rows in both tables above (unit test compares the dates, scopes and partsOfTerm).
@@ -93,4 +93,4 @@ The `partsOfTerm` values follow FR-0's exam-period rule (**PENDING USER DECISION
 ## Open questions
 1. The London campus likely has its own term dates. Which no-class dates apply to LDN? **Only `ALL` entries (fall and spring break, and exam periods).** No US or Canadian holidays. Check this with NU London when a source exists.
 2. Patriots Day is listed as "Boston and Portland only". Do the other MA campuses (BRD, BRL, DDH, NAH) observe it? **Yes, include them.** It's a Massachusetts state holiday.
-3. Which parts of term does an exam period suppress? See FR-0 (**PENDING USER DECISION**). Default: **only `"1"` in the main period and `"1L"` in the Law window.** 2B/3C stay busy, accepting false-busy over false-free.
+3. Which parts of term does an exam period suppress? **DECIDED by user 2026-11-09: only `"1"` in the main period and `"1L"` in the Law window.** 2B/3C stay busy, accepting false-busy over false-free.

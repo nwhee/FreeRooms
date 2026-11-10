@@ -1,6 +1,6 @@
 # FR-1 — Project scaffold and shared data contract
 
-**Status:** draft (revision 2)
+**Status:** approved by user 2026-11-09 (revision 3)
 **Owner:** product-manager · **Approved by:** vp-product, <user>
 **Depends on:** — · **Blocks:** every other ticket · **Overview:** `docs/specs/FR-0-overview.md`
 
@@ -19,6 +19,10 @@ No code exists yet. Every other ticket needs the same stack and one agreed shape
 - [ ] AC4: shadcn/ui components are present under `components/ui/`: `button`, `card`, `tabs`, `input`, `badge`, `alert`, `switch`, `skeleton`, `label`.
 - [ ] AC5: `npm run build` succeeds. `app/page.tsx` and `README.md` do **not** exist (they're FR-5's and FR-3's).
 - [ ] AC5b: `git check-ignore public/data/schedule.json` exits 0 (the local data file is gitignored). `.env.example` contains `NEXT_PUBLIC_DATA_URL=` with a comment: unset means `/data/schedule.json`, and production uses the raw URL of the `data` branch (FR-0).
+- [ ] AC5c **Missing data URL warning:** `next.config.ts` exports a phase function. Only in `PHASE_PRODUCTION_BUILD` (that is, `next build` with `NODE_ENV=production`; not `next dev`, not Vitest) and only when `NEXT_PUBLIC_DATA_URL` is unset or empty, it prints `console.warn` with a message starting `WARNING: NEXT_PUBLIC_DATA_URL is not set` and ending `the site will fetch /data/schedule.json, which is not deployed. Set it in Vercel and redeploy via scripts/deploy/.` The build still succeeds. Checks:
+  - `env -u NEXT_PUBLIC_DATA_URL npm run build` exits 0 and its output contains `WARNING: NEXT_PUBLIC_DATA_URL is not set`.
+  - `NEXT_PUBLIC_DATA_URL=https://example.test/s.json npm run build` output doesn't contain it.
+  - `npm run check` output doesn't contain it.
 - [ ] AC6: `lib/data/schema.ts` exports a Zod `scheduleFileSchema` matching the FR-0 contract exactly, plus the inferred types `ScheduleFile`, `Term`, `Campus`, `Building`, `Room`, `Meeting`, `Calendar`, `NoClassDate`, `ExamPeriod`.
 - [ ] AC7: `lib/data/schema.ts` exports `validateSchedule(json: unknown): { ok: true; data: ScheduleFile } | { ok: false; errors: string[] }`. It runs the Zod parse and then every invariant listed in FR-0. Unit tests show:
   - a valid fixture passes
@@ -28,6 +32,7 @@ No code exists yet. Every other ticket needs the same stack and one agreed shape
 - [ ] AC10: Vitest picks up `**/*.test.ts` and `**/*.test.tsx` under `lib/`, `components/` and `scripts/`. Component tests opt in to jsdom with `// @vitest-environment jsdom`.
 
 ## Edge cases
+- `NEXT_PUBLIC_DATA_URL` is inlined into the client bundle at build time. Changing it in Vercel takes effect only after a redeploy, which a human runs through `scripts/deploy/`.
 - `app/` with only `layout.tsx` must still build (it gives a 404 at `/` until FR-5).
 - `lib/data/` is deliberately not `lib/schemas/`, which would map to the MongoDB skill.
 

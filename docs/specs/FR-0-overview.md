@@ -1,6 +1,6 @@
 # FR-0 — FreeRooms v1 overview and data contract
 
-**Status:** draft (revision 2, after vp-product review)
+**Status:** approved by user 2026-11-09 (revision 3)
 **Owner:** product-manager · **Approved by:** vp-product, <user>
 
 Sources: `docs/brief.md` (user decisions, 2026-11-08) and the Banner research notes of
@@ -34,20 +34,19 @@ code change.
 | Find a calendar source the job can parse | Checked-in JSON per academic year (FR-6) | The Trumba feeds return 410 or 404, and the PDF is unordered text. |
 | Times are always America/New_York | **Each campus has its own IANA timezone.** "Now" and the picker are evaluated in the selected campus's zone | Banner times are local to each campus (London 0900–1530, Oakland 0845–1800, and so on). |
 
-## Deploy and data model — PENDING USER DECISION
+## Deploy and data model — DECIDED by user 2026-11-09
 CLAUDE.md says production changes go only through `scripts/deploy/`, which a human runs.
-So v1 must not rely on "Vercel deploys on every push". The specs are written around
-the recommended default below.
-
-**Recommended default (the specs assume it):**
+So v1 must not rely on "Vercel deploys on every push". The user chose this model
+(repo `nwhee/FreeRooms`, public):
 - **Data is decoupled from deploys.** The nightly workflow (FR-3) commits `schedule.json` to the root of a dedicated **`data` branch**. It never commits to `main`.
 - **The UI fetches the schedule at runtime** from `process.env.NEXT_PUBLIC_DATA_URL` (FR-5):
-  - In production a human sets it in Vercel to `https://raw.githubusercontent.com/<owner>/<repo>/data/schedule.json`.
+  - In production a human sets it in Vercel to `https://raw.githubusercontent.com/nwhee/FreeRooms/data/schedule.json`.
+  - `NEXT_PUBLIC_*` values are **inlined at build time**, so after setting or changing it in Vercel, the human must **redeploy through `scripts/deploy/`** (FR-7) for it to take effect. A production build without it logs a loud warning (FR-1 AC5c).
   - When it's unset, the UI falls back to `/data/schedule.json`, so local dev and tests use the local file that FR-2 writes. That file is gitignored.
 - A data refresh therefore needs **no production deploy**. Code changes still ship only through `scripts/deploy/`.
 - Agents never set production env vars. The human sets `NEXT_PUBLIC_DATA_URL` once.
 
-**Alternative (not specced):** commit data to `main` and let Vercel auto-deploy on push. This needs CLAUDE.md's production rule amended first.
+**Alternative (rejected):** commit data to `main` and let Vercel auto-deploy on push. This would need CLAUDE.md's production rule amended.
 
 ## Definitions (normative; FR-4 implements them, FR-5 displays them)
 All dates and times are **campus-local wall-clock**: a date `D` as `YYYY-MM-DD` and a minute `M` (0–1439) in the selected campus's timezone.
@@ -57,7 +56,7 @@ All dates and times are **campus-local wall-clock**: a date `D` as `YYYY-MM-DD` 
 - **Suppressed (recurring meetings only, where `startDate < endDate`):**
   - **No-class date:** D falls in a `noClassDates` entry whose `campuses` includes the room's campus.
   - **Exam period:** D falls in an `examPeriods` entry whose `partsOfTerm` contains the meeting's `partOfTerm`.
-- **Exam-period rule — PENDING USER DECISION:**
+- **Exam-period rule — DECIDED by user 2026-11-09:**
   - The main exam period suppresses only `partOfTerm` `"1"` (full term).
   - The Law exam window suppresses only `"1L"`. Fall 1L meetings already end 12/04, before the 12/07 window opens, so in practice this mostly matters for future terms.
   - Every other part of term (2A, 2B, 3A–3C, …) stays busy during finals.
@@ -155,8 +154,11 @@ Size budget: about 2–3 MB minified. FR-2 warns if the file is over 5 MB.
 | FR-2 | Banner fetch script | FR-1, FR-6 | `scripts/fetch-data/**` |
 | FR-5 | UI | FR-1, FR-4 | `app/page.tsx`, `components/free-rooms/**` |
 | FR-3 | Nightly workflow + README | FR-2 | `.github/workflows/nightly-data.yml`, `README.md` |
+| FR-7 | Deploy script draft (human installs it) | FR-3 | `docs/deploy-drafts/deploy.sh` |
 
-Waves: **1:** FR-1 → **2:** FR-4 and FR-6 in parallel → **3:** FR-2 and FR-5 in parallel → **4:** FR-3.
+Waves: **1:** FR-1 → **2:** FR-4 and FR-6 in parallel → **3:** FR-2 and FR-5 in parallel → **4:** FR-3 → **5:** FR-7.
+
+The decision log is in `docs/decisions.md`.
 
 Rules that keep ownership clean:
 - FR-1 installs **every** npm dependency v1 needs and defines every npm script, so no later ticket edits `package.json`. If a later ticket needs a new dependency, it stops and raises it as an open question.
@@ -172,8 +174,8 @@ Rules that keep ownership clean:
 - Any production deploy or production env var change by an agent.
 
 ## Open questions (recommended default in **bold**)
-1. **PENDING USER DECISION — deploy model:** **data on a `data` branch, fetched at runtime through `NEXT_PUBLIC_DATA_URL`** (see above). The alternative is auto-deploy on main, which requires amending CLAUDE.md.
-2. **PENDING USER DECISION — exam periods:** **suppress only part `"1"` in the main exam period and `"1L"` in the Law window.** Every other part stays busy.
-3. Does the default deploy model need the repo to be public? **Yes.** raw.githubusercontent.com needs no auth for public repos, and its CORS allows any origin. A private repo would need a proxy, which is out of scope for v1.
+1. Deploy model: **DECIDED by user 2026-11-09:** `data` branch + `NEXT_PUBLIC_DATA_URL`.
+2. Exam periods: **DECIDED by user 2026-11-09:** only part `"1"` in the main period, and `"1L"` in the Law window.
+3. Repo visibility: **DECIDED by user 2026-11-09: `nwhee/FreeRooms` is public**, so raw.githubusercontent.com serves the data with no auth and with permissive CORS.
 4. In time-travel mode, when the user switches campus, does the picked time stay as the same wall-clock time or the same instant? **The same wall-clock date and time, read in the new campus's zone.**
 5. raw.githubusercontent.com caches for about 5 minutes. Is that acceptable? **Yes.** The data changes nightly.

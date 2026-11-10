@@ -1,6 +1,6 @@
 # FR-2 — Banner fetch script that writes static JSON
 
-**Status:** draft (revision 2)
+**Status:** approved by user 2026-11-09 (revision 3)
 **Owner:** product-manager · **Approved by:** vp-product, <user>
 **Depends on:** FR-1, FR-6 · **Blocks:** FR-3 · **Overview:** `docs/specs/FR-0-overview.md`
 
@@ -21,11 +21,7 @@ A Node script, `npm run fetch-data` (`tsx scripts/fetch-data/index.ts`), that wr
    - Convert `"1030"` → 630 and `MM/DD/YYYY` → `YYYY-MM-DD`.
    - **Hand-roll the HTML entity decoder.** Cover named entities (`&amp; &lt; &gt; &quot; &#39; &apos;`) and numeric ones (`&#NN;` / `&#xNN;`). Add no dependency.
    - Room id = `<building>-<room>`. If one room appears under several campuses, take the campus with the most meetings and add a warning.
-   - **Collapse identical meetings** (same roomId, days, start, end, startDate, endDate). Keep the **least-suppressible** `partOfTerm`:
-     - first, any code that appears in no `calendar.examPeriods[].partsOfTerm`;
-     - otherwise, the code suppressed on the fewest exam-period days;
-     - ties broken by lowest `partOfTerm`, then lowest `termCode`.
-     - `termCode` comes from the kept meeting. This means a collapse never makes a room look free when one of the merged meetings would still keep it busy.
+   - **Collapse identical meetings** only when they share all of roomId, days, start, end, startDate, endDate **and `partOfTerm`** (for example, cross-listed sections). Keep the lowest `termCode`. Meetings that differ only in `partOfTerm` are all kept, because the calendar can suppress them differently.
    - Build `calendar` with FR-6's `buildCalendarBlock` and append `missingCalendarWarnings`.
 4. **Validate and write:** run `validateSchedule` (FR-1), then apply the guards and the write rule below.
 
@@ -39,6 +35,7 @@ A Node script, `npm run fetch-data` (`tsx scripts/fetch-data/index.ts`), that wr
 - Any request that fails after its retries, or a non-JSON or `success:false` response.
 - `totalCount > 0` for a term but the unique sections fetched < `totalCount`.
 - `validateSchedule` fails, or the output has 0 rooms or 0 meetings.
+- **Vanished-term guard:** a term in the existing file that is still in the window (`endDate ≥ today`) returns 0 sections in the new run, or is missing from the new output. Override with `--force`. This stops a Banner hiccup on one term from wiping that term's rooms and making them look free.
 - **Per-term room-drop guard:** for each term present in **both** the existing file and the new output, the distinct rooms with a meeting in that term fall below 50% of the existing count. Override with `--force`.
   - Terms that left the window, or are new, aren't compared, so the semester switch around Dec 21 doesn't trip the guard.
 
@@ -80,8 +77,12 @@ A Node script, `npm run fetch-data` (`tsx scripts/fetch-data/index.ts`), that wr
 - [ ] AC5b **Semester transition (test):**
   - The existing file has 202710 (600 rooms) and 202730 (150 rooms). The new run with `--today 2026-12-21` has only 202730 (160 rooms), so the total drops 80%. It exits 0 and writes.
   - With the same existing file, a new 202730 with 70 rooms (< 50% of 150) exits 1. With `--force` it exits 0.
+  - **Vanished term:** with `--today 2026-11-20`, the existing file has 202710 (endDate 2026-12-20) and 202730. In one case Banner returns `totalCount: 0` for 202710; in another, 202710 is absent from `getTerms`. Both exit 1 and leave the file byte-identical. Both exit 0 with `--force`.
+  - **Not vanished:** with `--today 2026-12-21`, the same 202710 (endDate 2026-12-20 < today) is absent, and the run exits 0.
 - [ ] AC6 **Room-assignment counts (test):** a fixture term with 10 candidate meetings, 6 of them roomed, gets `meetingCount: 10, roomedMeetingCount: 6`. Online (VTL or Online campus) and no-time meetings are counted in neither.
-- [ ] AC7 **Dedupe order (test):** with exam period `partsOfTerm ["1"]`, two identical meetings with parts `1` and `2B` collapse to one with `partOfTerm "2B"`. Identical `1` and `1L` meetings (Law window longer than the main window) collapse to `"1"`.
+- [ ] AC7 **Dedupe (test):**
+  - Two identical meetings with the same `partOfTerm "1"` from terms 202730 and 202710 collapse to one with `termCode "202710"`.
+  - Identical meetings with parts `1` and `2B` stay as two meetings.
 - [ ] AC8 **Write rule (tests):**
   - Same content and a fresh `generatedAt` → file not rewritten and `No change; not writing.` printed.
   - Same content and a `generatedAt` 49 h old → rewritten.
@@ -98,12 +99,13 @@ A Node script, `npm run fetch-data` (`tsx scripts/fetch-data/index.ts`), that wr
 - [ ] AC12 **Live smoke (manual, run once by the engineer and output pasted in the PR):** `npm run fetch-data -- --out /tmp/schedule.json` exits 0 and makes fewer than 100 requests. The pasted output and a `jq` check on the file show:
   - ≥ 400 rooms and ≥ 5,000 meetings
   - at least one room with an id starting `DK-` (Law, Dockser)
-  - more than 0 meetings with `partOfTerm != "1"`.
+  - at least one meeting with `partOfTerm` in `2A`, `2B`, `3A`, `3B` or `3C` (CPS sessions).
 - [ ] AC13: Running the script locally produces `public/data/schedule.json` that passes `validateSchedule`. Git doesn't track it (`git check-ignore public/data/schedule.json` exits 0, and `git status` stays clean). No file outside `scripts/fetch-data/` is committed by this ticket.
 - [ ] AC14: Unit tests make no network calls. `npm run check` passes.
 
 ## Edge cases
-- A term with `totalCount: 0` (newly created) → warning. Not a failure unless it leaves zero terms.
+- A term **not in the existing file** with `totalCount: 0` (newly created) → warning. Not a failure unless it leaves zero terms. For a term that is in the existing file and still in the window, 0 sections is a failure (vanished-term guard).
+- **Window edge (accepted):** "today" is the America/New_York date on the runner. Terms are added or dropped on New York midnight, so a West Coast or London term's last evening can drop up to a day early or late. The UI still filters each meeting by its own dates, so the only effect is that one term's data may disappear a day early. Accepted for v1.
 - Banner renames a campus → the meetings are skipped with a warning. The per-term guard catches a mass loss within a term.
 - Spring rooms not yet assigned → shows up as a low `roomedMeetingCount`, which FR-5 surfaces as a banner.
 - Sticky session filters → the script never sends filters other than `txt_term`, and always resets between terms.
