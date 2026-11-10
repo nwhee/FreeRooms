@@ -1,0 +1,54 @@
+OK   valid fixture                     
+ERR  unknown roomId                    ["meetings[0].roomId: unknown room \"XX-1\""]
+ERR  unknown building                  ["buildings[0].roomCount: is 1 but 0 rooms have building \"DK\"","rooms[0].building: unknown building \"ZZ\""]
+ERR  unknown campus (building)         ["campuses[0].buildingCount: is 2 but 1 buildings have campus \"BOS\"","buildings[0].campus: unknown campus \"QQQ\""]
+ERR  unknown campus (room)             ["campuses[0].roomCount: is 3 but 2 rooms have campus \"BOS\"","rooms[0].campus: unknown campus \"QQQ\""]
+ERR  wrong roomCount campus            ["campuses[0].roomCount: is 9 but 3 rooms have campus \"BOS\""]
+ERR  wrong roomCount building          ["buildings[0].roomCount: is 9 but 1 rooms have building \"DK\""]
+ERR  wrong buildingCount               ["campuses[0].buildingCount: is 9 but 2 buildings have campus \"BOS\""]
+ERR  days 0                            ["meetings[0].days: must be an integer from 1 to 127"]
+ERR  days 128                          ["meetings[0].days: must be an integer from 1 to 127"]
+ERR  days 1.5                          ["meetings[0].days: must be an integer from 1 to 127"]
+ERR  start==end                        ["meetings[0]: start 600 is not before end 600"]
+ERR  start>end                         ["meetings[0]: start 700 is not before end 600"]
+ERR  end 1441                          ["meetings[0].end: must be an integer from 1 to 1440"]
+ERR  start -1                          ["meetings[0].start: must be an integer from 0 to 1439"]
+OK   start 0 end 1440 (edge ok)        
+ERR  startDate>endDate meeting         ["meetings[0]: startDate 2026-12-05 is after endDate 2026-12-04"]
+ERR  startDate>endDate term            ["terms[0]: startDate 2027-01-01 is after endDate 2026-12-20"]
+ERR  bad date 2026-9-2                 ["meetings[0].startDate: must be a date in YYYY-MM-DD format, got \"2026-9-2\""]
+ERR  bad date 2026-02-30               ["meetings[0].startDate: must be a date in YYYY-MM-DD format, got \"2026-02-30\""]
+ERR  bad date in calendar              ["calendar.noClassDates[0].start: must be a date in YYYY-MM-DD format, got \"11/11/2026\""]
+ERR  invalid timezone                  ["campuses[0].timezone: \"Mars/Olympus\" is not a time zone accepted by Intl.DateTimeFormat"]
+OK   timezone EST (Intl accepts)       
+ERR  roomed > meetingCount             ["terms[0].roomedMeetingCount: 6 exceeds meetingCount 5"]
+ERR  negative meetingCount             ["terms[0].meetingCount: must be a non-negative integer"]
+ERR  empty exam partsOfTerm            ["calendar.examPeriods[0].partsOfTerm: must not be empty"]
+ERR  schemaVersion 2                   ["schemaVersion: Invalid input: expected 1"]
+ERR  generatedAt non-UTC               ["generatedAt: must be an ISO 8601 UTC timestamp"]
+ERR  missing warnings                  ["warnings: Invalid input: expected array, received undefined"]
+OK   extra unknown key                 
+ERR  multiple errors                   ["terms[0].roomedMeetingCount: 99 exceeds meetingCount 5","meetings[0].roomId: unknown room \"X\""]
+input null false 1 errors, first: Invalid input: expected object, received null
+input undefined false 1 errors, first: Invalid input: expected object, received undefined
+input "x" false 1 errors, first: Invalid input: expected object, received string
+input 42 false 1 errors, first: Invalid input: expected object, received number
+input [] false 1 errors, first: Invalid input: expected object, received array
+input {} false 9 errors, first: schemaVersion: Invalid input: expected 1
+CAMPUSES 17 BOS,BRD,BRL,DDH,NAH,PTL,NYC,ARL,CHL,MIA,TOR,LDN,OAK,SFR,SJO,SEA,VAN
+keys code,name,timezone,region,bannerNames
+TOR:CAN:America/Toronto LDN:UK:Europe/London VAN:CAN:America/Vancouver
+"Portland Maine"                 PTL
+"PORTLAND, MAINE"                PTL
+"  portland ,  maine. "          PTL
+"boston"                         BOS
+"Boston - Broad Street"          BRD
+"boston broad street"            BRD
+"London"                         LDN
+"Online"                         null
+"No campus, no room needed"      null
+"Mars"                           null
+""                               null
+"Toronto Canada"                 TOR
+"Boston, MA"                     null
+"Vancouver, Canada"              VAN

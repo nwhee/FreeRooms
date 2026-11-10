@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-09T07:00:00.000Z",
+  "terms": [
+    {
+      "code": "202710",
+      "description": "Fall 2026 Semester",
+      "startDate": "2026-09-02",
+      "endDate": "2026-12-20",
+      "partsOfTerm": [
+        { "code": "1", "startDate": "2026-09-09", "endDate": "2026-12-20" },
+        { "code": "1L", "startDate": "2026-09-02", "endDate": "2026-12-04" },
+        { "code": "2B", "startDate": "2026-11-02", "endDate": "2026-12-20" }
+      ],
+      "meetingCount": 5,
+      "roomedMeetingCount": 4
+    }
+  ],
+  "campuses": [
+    { "code": "BOS", "name": "Boston", "timezone": "America/New_York", "buildingCount": 2, "roomCount": 3 },
+    { "code": "LDN", "name": "London", "timezone": "Europe/London", "buildingCount": 1, "roomCount": 1 }
+  ],
+  "buildings": [
+    { "code": "DK", "name": "Dockser Hall", "campus": "BOS", "roomCount": 1 },
+    { "code": "LDN-DH", "name": "Devon House", "campus": "LDN", "roomCount": 1 },
+    { "code": "SL", "name": "Snell Library", "campus": "BOS", "roomCount": 2 }
+  ],
+  "rooms": [
+    { "id": "DK-240", "campus": "BOS", "building": "DK", "room": "240", "displayName": "Dockser Hall 240" },
+    { "id": "LDN-DH-1.01", "campus": "LDN", "building": "LDN-DH", "room": "1.01", "displayName": "Devon House 1.01" },
+    { "id": "SL-033", "campus": "BOS", "building": "SL", "room": "033", "displayName": "Snell Library 033" },
+    { "id": "SL-117", "campus": "BOS", "building": "SL", "room": "117", "displayName": "Snell Library 117" }
+  ],
+  "meetings": [
+    {
+      "roomId": "DK-240",
+      "days": 5,
+      "start": 540,
+      "end": 645,
+      "startDate": "2026-09-02",
+      "endDate": "2026-12-04",
+      "partOfTerm": "1L",
+      "termCode": "202710"
+    },
+    {
+      "roomId": "LDN-DH-1.01",
+      "days": 2,
+      "start": 540,
+      "end": 720,
+      "startDate": "2026-09-09",
+      "endDate": "2026-12-20",
+      "partOfTerm": "1",
+      "termCode": "202710"
+    },
+    {
+      "roomId": "SL-117",
+      "days": 13,
+      "start": 630,
+      "end": 695,
+      "startDate": "2026-09-09",
+      "endDate": "2026-12-20",
+      "partOfTerm": "1",
+      "termCode": "202710"
+    },
+    {
+      "roomId": "SL-117",
+      "days": 4,
+      "start": 1080,
+      "end": 1440,
+      "startDate": "2026-11-11",
+      "endDate": "2026-11-11",
+      "partOfTerm": "2B",
+      "termCode": "202710"
+    }
+  ],
+  "calendar": {
+    "termYears": ["2027"],
+    "noClassDates": [
+      { "start": "2026-11-11", "end": "2026-11-11", "label": "Veterans Day", "campuses": ["BOS", "VAN"] },
+      { "start": "2026-11-25", "end": "2026-11-29", "label": "Fall break", "campuses": ["BOS", "LDN"] }
+    ],
+    "examPeriods": [
+      { "start": "2026-12-14", "end": "2026-12-20", "label": "Final exams", "partsOfTerm": ["1"] },
+      { "start": "2026-12-07", "end": "2026-12-20", "label": "Law exams", "partsOfTerm": ["1L"] }
+    ]
+  },
+  "warnings": []
+}
