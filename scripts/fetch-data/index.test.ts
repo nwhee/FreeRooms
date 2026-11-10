@@ -491,7 +491,7 @@ describe("summary line (FR-2 AC11)", () => {
 describe("CLI arguments", () => {
   it("rejects a malformed --today and unknown flags", async () => {
     const out = join(tempDir(), "schedule.json");
-    expect((await runMain(["--out", out, "--today", "11/09/2026"], FIXTURE_BANNER)).errorText).toMatch(/--today must be YYYY-MM-DD/);
+    expect((await runMain(["--out", out, "--today", "11/09/2026"], FIXTURE_BANNER)).errorText).toMatch(/Invalid --today: 11\/09\/2026/);
     expect((await runMain(["--out", out, "--nope"], FIXTURE_BANNER)).code).toBe(1);
   });
 });

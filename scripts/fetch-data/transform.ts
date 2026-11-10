@@ -3,6 +3,7 @@ import type { Building, Campus, Meeting, PartOfTerm, Room, Term } from "../../li
 import type { BannerMeetingTime, BannerSection, BannerTerm } from "./banner-client";
 import { addDays, parseBannerDate, parseBannerTime } from "./dates";
 import { decodeEntities } from "./entities";
+import { isPlaceholderRoom, placeholderWarning } from "./placeholders";
 
 /**
  * Banner sections -> the FR-0 schedule.json entities (docs/specs/FR-2.md,
@@ -159,8 +160,18 @@ function rankByCount(counts: Map<string, number>): string[] {
   return [...counts].sort((a, b) => b[1] - a[1] || compare(a[0], b[0])).map(([key]) => key);
 }
 
-export function transformTerms(fetched: readonly FetchedTerm[], today: string): TransformResult {
+/**
+ * `placeholderPatterns` is the deny-list from placeholder-rooms.json. A
+ * placeholder meeting counts as a candidate but not as roomed (FR-2b), and is
+ * dropped before building campuses are settled.
+ */
+export function transformTerms(
+  fetched: readonly FetchedTerm[],
+  today: string,
+  placeholderPatterns: readonly RegExp[] = [],
+): TransformResult {
   const warnings: string[] = [];
+  const placeholderMeetings = new Map<string, number>();
   const skipped: TransformResult["skipped"] = [];
   const terms: Term[] = [];
   const rawMeetings: RawMeeting[] = [];
@@ -209,6 +220,10 @@ export function transformTerms(fetched: readonly FetchedTerm[], today: string): 
         meetingCount++;
         const room = nonEmpty(meetingTime.room);
         if (building === null || room === null) continue;
+        if (isPlaceholderRoom(placeholderPatterns, room)) {
+          increment(placeholderMeetings, `${building}-${room}`);
+          continue;
+        }
         roomedMeetingCount++;
 
         const start = parseBannerTime(meetingTime.beginTime);
@@ -254,6 +269,8 @@ export function transformTerms(fetched: readonly FetchedTerm[], today: string): 
   for (const [name, count] of [...unknownCampuses].sort((a, b) => compare(a[0], b[0]))) {
     warnings.push(`Unknown campus "${name}" on ${count} meeting${count === 1 ? "" : "s"}; skipped.`);
   }
+  const excluded = placeholderWarning(placeholderMeetings);
+  if (excluded !== null) warnings.push(excluded);
 
   // One campus per building: the most common section campus, ties to the lowest code.
   const campusCounts = new Map<string, Map<string, number>>();
