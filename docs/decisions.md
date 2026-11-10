@@ -18,4 +18,8 @@
 | 2026-11-09 | FR-0, FR-1 | Contract invariants added: unique codes and ids, `room.campus` equals its building's campus, `meeting.termCode` is in `terms`, and a strict schema that rejects unknown keys. | Consensus, FR-1 review (same reviewers) |
 | 2026-11-09 | FR-2 | One campus per building: the most common section-level campus among its roomed meetings, ties broken by lowest campus code. Rooms inherit it. A warning is logged when sections span more than one campus. | Consensus, FR-1 review (same reviewers) |
 | 2026-11-09 | FR-5 | Design guidance: informational banners use `role="status"` and only the load error uses `role="alert"`. The tab list uses `overflow-x-auto`. Tab triggers and the Now/Retry buttons are ≥ 44 px on phones. No small muted text on muted surfaces. `cn` comes from `@/lib/utils`. | Consensus, FR-1 review (same reviewers) |
+| 2026-11-09 | FR-0, FR-4 | Campus "now" follows the runtime's IANA tzdata. Under tzdata 2026c, America/Vancouver is permanently UTC-7, so FR-4 AC11 expects 480 at 2026-11-18T15:00Z (LA is 420). Older tzdata may be an hour off for Vancouver; accepted. | Consensus (team) |
+| 2026-11-09 | FR-0, FR-1 | Invariant: every campus in `campuses` has ≥ 1 room (FR-1 enforces it). | Consensus (team) |
+| 2026-11-09 | FR-0 | QA owns `e2e/FR-<n>.spec.ts` and `docs/qa/FR-<n>/` per ticket. QA evidence (report and screenshots) is committed with its ticket. | Consensus (team) |
+| 2026-11-09 | FR-1 | FR-1 merged into `main` by consensus. All 4 reviewers passed on the second pass (`ba6db7d`). | Consensus (all 4 reviewers) |
 | 2026-11-09 | HOOK-1 | The user approved an extra review round. security-reviewer returned PASS_WITH_NOTES on pass 3. Landed in commit `9b08821`. | User (extra round), security-reviewer |
