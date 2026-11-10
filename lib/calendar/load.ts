@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { type Dirent, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import { CAMPUSES } from "../data/campuses";
@@ -21,10 +21,13 @@ const isoDateSchema = z.string().refine(isIsoDate, {
 
 const labelSchema = z.string().min(1, { error: "must not be empty" });
 
-/** Adds an error on `end` when `start` is after it. YYYY-MM-DD compares correctly as text. */
+/**
+ * Adds an error on `end` when `start` is after it. YYYY-MM-DD compares correctly
+ * as text. Skipped unless both are valid dates, so a bad date reports only its own error.
+ */
 function withStartNotAfterEnd<T extends z.ZodType<{ start: string; end: string }>>(schema: T) {
   return schema.superRefine((entry, ctx) => {
-    if (entry.start > entry.end) {
+    if (isIsoDate(entry.start) && isIsoDate(entry.end) && entry.start > entry.end) {
       ctx.addIssue({ code: "custom", path: ["end"], message: `start ${entry.start} is after end ${entry.end}` });
     }
   });
@@ -76,6 +79,13 @@ const calendarSourceSchema = z
         path: ["academicYear"],
         message: `${source.academicYear} is not two consecutive years`,
       });
+    } else if (source.termYear !== String(second)) {
+      // Term codes carry the year the academic year ends in (Fall 2026 = 202710).
+      ctx.addIssue({
+        code: "custom",
+        path: ["termYear"],
+        message: `must be ${second} for academic year ${source.academicYear}, got ${source.termYear}`,
+      });
     }
   });
 
@@ -104,7 +114,8 @@ function formatPath(path: readonly PropertyKey[]): string {
 function parseCalendarFile(file: string, text: string): CalendarSource {
   let json: unknown;
   try {
-    json = JSON.parse(text);
+    // Editors on Windows may save a UTF-8 BOM, which JSON.parse rejects.
+    json = JSON.parse(text.replace(/^﻿/, ""));
   } catch (error) {
     throw new CalendarFileError(file, `malformed JSON (${error instanceof Error ? error.message : String(error)})`);
   }
@@ -122,10 +133,19 @@ function parseCalendarFile(file: string, text: string): CalendarSource {
 /**
  * Reads and validates every `*.json` file in `dir`, in file-name order.
  * An empty directory gives `[]`. Throws a `CalendarFileError` naming the file
- * and field for the first file that is invalid.
+ * and field for the first file that is invalid, or naming `dir` if it can't be read.
  */
 export function loadCalendarFiles(dir: string): CalendarSource[] {
-  const fileNames = readdirSync(dir, { withFileTypes: true })
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch (error) {
+    throw new CalendarFileError(
+      dir,
+      `cannot read calendar directory (${error instanceof Error ? error.message : String(error)})`,
+    );
+  }
+  const fileNames = entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
     .map((entry) => entry.name)
     .sort();

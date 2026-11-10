@@ -201,15 +201,42 @@ describe("loadCalendarFiles (FR-6 AC2)", () => {
     );
   });
 
-  it("throws naming both files when two files share a termYear", () => {
+  it("throws naming the offending file when two files share a termYear", () => {
     // The usual slip: next year's file copied from this year's without bumping termYear.
+    // The termYear/academicYear rule fires first; the duplicate check stays as defence in depth.
     const dir = calendarDir({
       "2026-2027.json": validSource(2026),
       "2027-2028.json": { ...validSource(2027), termYear: "2027" },
     });
     expect(loadError(dir).message).toBe(
-      `${join(dir, "2027-2028.json")}: termYear: "2027" is also used by ${join(dir, "2026-2027.json")}`,
+      `${join(dir, "2027-2028.json")}: termYear: must be 2028 for academic year 2027-2028, got 2027`,
     );
+  });
+
+  it("throws when termYear isn't the year the academic year ends in, even as the only file", () => {
+    const dir = calendarDir({ "2027-2028.json": { ...validSource(2027), termYear: "2027" } });
+    const error = loadError(dir);
+    expect(error.file).toBe(join(dir, "2027-2028.json"));
+    expect(error.message).toMatch(/2027-2028\.json: termYear: must be 2028 for academic year 2027-2028, got 2027$/);
+  });
+
+  it("strips a leading UTF-8 BOM before parsing", () => {
+    const dir = calendarDir({ "2026-2027.json": `﻿${JSON.stringify(validSource())}` });
+    expect(loadCalendarFiles(dir)).toEqual([validSource()]);
+  });
+
+  it("reports a bad end date once, without a start/end comparison", () => {
+    const source = validSource();
+    source.noClassDates[0].end = "2026-9-07";
+    const detail = loadError(calendarDir({ "2026-2027.json": source })).message.split(": ").slice(1).join(": ");
+    expect(detail).toBe('noClassDates[0].end: must be a date in YYYY-MM-DD format, got "2026-9-07"');
+  });
+
+  it("throws a CalendarFileError naming the directory when it doesn't exist", () => {
+    const dir = join(calendarDir({}), "missing");
+    const error = loadError(dir);
+    expect(error.file).toBe(dir);
+    expect(error.message).toMatch(new RegExp(`^${dir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}: cannot read calendar directory`));
   });
 
   it("throws when academicYear isn't two consecutive years", () => {
