@@ -6,11 +6,13 @@
 #
 # Steps, in order:
 #   1. Strict mode and required tools (vercel, curl, jq, npm).
-#   2. Branch must be main and the working tree must be clean.
+#   2. Branch must be main, the working tree must be clean, and HEAD must
+#      match origin/main.
 #   3. NEXT_PUBLIC_DATA_URL must be set for Vercel production, and the
 #      published schedule.json must have schemaVersion 1.
 #   4. npm ci, then npm run check.
-#   5. Show the commit and ask for confirmation.
+#   5. Refuse if local .env* (except .env.example) or *.pem files exist,
+#      then show the commit and ask for confirmation.
 #   6. Deploy to Vercel production.
 #
 # Optional: DATA_URL overrides the URL used for the step 3 data check.
@@ -44,6 +46,14 @@ if [[ -n "$(git status --porcelain)" ]]; then
   die "Working tree is not clean. Commit or discard changes, then re-run."
 fi
 
+if ! git fetch origin main --quiet; then
+  die "'git fetch origin main' failed. Check your network and git remote, then re-run."
+fi
+
+if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
+  die "Local main does not match origin/main. Push or pull first, then re-run."
+fi
+
 # Step 3: NEXT_PUBLIC_DATA_URL is set in Vercel production, and the data is reachable.
 if ! env_list="$(vercel env ls production 2>&1)"; then
   echo "$env_list" >&2
@@ -55,7 +65,7 @@ if ! grep -qw "NEXT_PUBLIC_DATA_URL" <<<"$env_list"; then
 fi
 
 data_url="${DATA_URL:-$DEFAULT_DATA_URL}"
-if ! data_json="$(curl -fsS "$data_url")"; then
+if ! data_json="$(curl -fsS --connect-timeout 10 --max-time 30 "$data_url")"; then
   die "Could not fetch $data_url. If the data branch does not exist yet, run the nightly-data workflow once with publish: true, then re-run."
 fi
 
@@ -72,7 +82,17 @@ if ! npm run check; then
   die "npm run check failed. Fix the build before deploying."
 fi
 
-# Step 5: confirm.
+# Step 5: refuse to upload local env or key files, then confirm.
+# Lines look like "!! .env.local" or "?? certs/key.pem"; strip the 3-char status.
+sensitive_files="$(git status --porcelain --ignored \
+  | cut -c4- \
+  | grep -E '(^|/)(\.env[^/]*|[^/]*\.pem)$' \
+  | grep -vE '(^|/)\.env\.example$' || true)"
+if [[ -n "$sensitive_files" ]]; then
+  echo "$sensitive_files" >&2
+  die "Local env or .pem files found (listed above). Move them out of the repo before deploying."
+fi
+
 commit="$(git rev-parse --short HEAD)"
 echo "About to deploy commit $commit (branch main) to Vercel production."
 answer=""
