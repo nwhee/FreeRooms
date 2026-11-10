@@ -29,7 +29,7 @@ export class BannerError extends Error {
 }
 
 const bannerTermSchema = z.object({ code: z.string().min(1), description: z.string() });
-const termsPageSchema = z.array(bannerTermSchema);
+export const termsPageSchema = z.array(bannerTermSchema);
 
 const meetingTimeSchema = z.object({
   beginTime: z.string().nullish(),
@@ -56,7 +56,7 @@ const sectionSchema = z.object({
   meetingsFaculty: z.array(z.object({ meetingTime: meetingTimeSchema.nullish() })).nullish(),
 });
 
-const searchPageSchema = z.object({
+export const searchPageSchema = z.object({
   success: z.literal(true),
   totalCount: z.int().min(0),
   data: z.array(sectionSchema).nullish(),
