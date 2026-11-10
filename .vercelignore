@@ -1,0 +1,9 @@
+# Never upload local env files, keys, or agent/test tooling to Vercel (mirrors .gitignore).
+.env*
+!.env.example
+*.pem
+.claude/
+docs/
+e2e/
+test-results/
+playwright-report/

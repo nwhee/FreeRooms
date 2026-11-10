@@ -57,12 +57,15 @@ export function serializeSchedule(file: ScheduleFile): string {
   return JSON.stringify(file);
 }
 
-/** The file with a warning added when its minified size is over the budget. */
-export function withSizeWarning(file: ScheduleFile, limitBytes = SIZE_WARNING_BYTES): ScheduleFile {
+/** The file, with the returned `warning` appended when its minified size is over the budget. */
+export function withSizeWarning(
+  file: ScheduleFile,
+  limitBytes = SIZE_WARNING_BYTES,
+): { file: ScheduleFile; warning: string | null } {
   const bytes = Buffer.byteLength(serializeSchedule(file));
-  if (bytes <= limitBytes) return file;
+  if (bytes <= limitBytes) return { file, warning: null };
   const warning = `schedule.json is ${(bytes / 1_000_000).toFixed(1)} MB, over the ${limitBytes / 1_000_000} MB budget.`;
-  return { ...file, warnings: [...file.warnings, warning] };
+  return { file: { ...file, warnings: [...file.warnings, warning] }, warning };
 }
 
 /** JSON with object keys sorted, so key order can't make equal content look different. */

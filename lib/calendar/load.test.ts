@@ -55,11 +55,17 @@ function loadError(dir: string): CalendarFileError {
 }
 
 describe("data/calendar/2026-2027.json (FR-6 AC1)", () => {
-  const [calendar] = loadCalendarFiles(CALENDAR_DIR);
+  const calendars = loadCalendarFiles(CALENDAR_DIR);
+  const found = calendars.find((source) => source.academicYear === "2026-2027");
+  if (!found) throw new Error("data/calendar/2026-2027.json is missing");
+  const calendar = found;
 
-  it("is the only calendar file and covers term year 2027 from the registrar PDF", () => {
-    expect(loadCalendarFiles(CALENDAR_DIR)).toHaveLength(1);
-    expect(calendar.academicYear).toBe("2026-2027");
+  it("gives every calendar file a unique termYear", () => {
+    const termYears = calendars.map((source) => source.termYear);
+    expect(new Set(termYears).size).toBe(termYears.length);
+  });
+
+  it("covers term year 2027 from the registrar PDF", () => {
     expect(calendar.termYear).toBe("2027");
     expect(calendar.source).toBe(
       "https://registrar.northeastern.edu/wp-content/uploads/sites/9/2026-2027-Academic-Calendar.pdf",
@@ -253,7 +259,9 @@ describe("loadCalendarFiles (FR-6 AC2)", () => {
 });
 
 describe("buildCalendarBlock (FR-6 AC3)", () => {
-  const block = buildCalendarBlock(loadCalendarFiles(CALENDAR_DIR));
+  const block = buildCalendarBlock(
+    loadCalendarFiles(CALENDAR_DIR).filter((source) => source.academicYear === "2026-2027"),
+  );
   const entry = (label: string) => block.noClassDates.find((item) => item.label === label);
 
   it("passes the calendar part of scheduleFileSchema", () => {

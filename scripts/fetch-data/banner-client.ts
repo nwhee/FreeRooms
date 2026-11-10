@@ -16,6 +16,10 @@ export const RETRY_DELAYS_MS = [5_000, 15_000, 45_000] as const;
 const REQUEST_TIMEOUT_MS = 120_000;
 /** getTerms has ~150 terms; this only stops a runaway loop. */
 const MAX_TERM_PAGES = 20;
+/** A term needs ~18 pages; more than this means Banner's paging is broken (FR-2b). */
+export const MAX_SEARCH_PAGES = 100;
+/** A longer Retry-After fails the request at once instead of waiting (FR-2b). */
+export const MAX_RETRY_AFTER_MS = 300_000;
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
 export type Sleep = (ms: number) => Promise<void>;
@@ -28,7 +32,10 @@ export class BannerError extends Error {
   }
 }
 
-const bannerTermSchema = z.object({ code: z.string().min(1), description: z.string() });
+/** Banner term codes are six digits ("202730"); anything else fails the run. */
+const termCodeSchema = z.string().regex(/^\d{6}$/, { error: "must be a 6-digit term code" });
+
+const bannerTermSchema = z.object({ code: termCodeSchema, description: z.string() });
 export const termsPageSchema = z.array(bannerTermSchema);
 
 const meetingTimeSchema = z.object({
@@ -49,7 +56,7 @@ const meetingTimeSchema = z.object({
 });
 
 const sectionSchema = z.object({
-  term: z.string(),
+  term: termCodeSchema,
   courseReferenceNumber: z.string().min(1),
   campusDescription: z.string().nullish(),
   partOfTerm: z.string().nullish(),
@@ -74,6 +81,8 @@ export type BannerClientOptions = {
   sleep: Sleep;
   delayMs: number;
   baseUrl?: string;
+  /** Clock for HTTP-date Retry-After values. Defaults to Date.now. */
+  now?: () => number;
 };
 
 function isRetryableStatus(status: number): boolean {
@@ -127,7 +136,12 @@ export class BannerClient {
 
     const sections: BannerSection[] = [];
     let totalCount: number | null = null;
-    while (totalCount === null || sections.length < totalCount) {
+    for (let pages = 0; totalCount === null || sections.length < totalCount; pages++) {
+      if (pages === MAX_SEARCH_PAGES) {
+        throw new BannerError(
+          `Term ${termCode}: still short of totalCount ${totalCount} after ${MAX_SEARCH_PAGES} searchResults pages`,
+        );
+      }
       const query = new URLSearchParams({
         txt_term: termCode,
         pageOffset: String(sections.length),
@@ -194,7 +208,12 @@ export class BannerClient {
           throw new BannerError(`${method} ${path}: HTTP ${response.status}`);
         }
         failure = `HTTP ${response.status}`;
-        minWait = retryAfterMs(response, Date.now());
+        minWait = retryAfterMs(response, (this.options.now ?? Date.now)());
+        if (minWait > MAX_RETRY_AFTER_MS) {
+          throw new BannerError(
+            `${method} ${path}: HTTP ${response.status} asks to retry after ${Math.ceil(minWait / 1000)} s, over the ${MAX_RETRY_AFTER_MS / 1000} s limit`,
+          );
+        }
       } catch (error) {
         if (error instanceof BannerError) throw error;
         failure = `network error (${error instanceof Error ? error.message : String(error)})`;
