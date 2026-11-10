@@ -1,0 +1,39 @@
+OK   AC8b case1 exit 0
+OK   AC8b case1 re-fetch warning names 202730  OUT ::warning::Term 202730: re-fetched after a paging shortfall (999/1000)
+OK   AC8b case1 dropped section (CRN 30600 / room QA-R600) is in the output
+OK   AC8b case1 sleeps all >= 2000  n=11
+OK   AC8b case1 resets = 3 (202710 once, 202730 twice)  resets=3
+     warning text: OUT ::warning::Term 202730: re-fetched after a paging shortfall (999/1000)
+OK   AC8b case2 exit 1
+OK   AC8b case2 re-fetch warning printed before the error  warn@5 err@6
+OK   AC8b case2 file untouched
+OK   AC8b case2 exactly two term/search for 202730 (one re-fetch)  log=getTerms:1,reset,term:202710,override:searchResults/searchResults,reset,term:202730,override:searchResults/searchResults,override:searchResults/searchResults,reset,term:202730,override:searchResults/searchResults,override:searchResults/searchResults
+OK   AC8b case2 sleeps all >= 3000 (default)
+     sequences: R>T>P  R>T>P>P  R>T>P>P
+     log: OUT ::warning::Existing /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa2b-nm77wm/s.json is not a valid schedule (it is not JSON); comparison guards skipped. || OUT ::warning::Term 202730: re-fetched after a paging shortfall (999/1000) || ERR Error: Term 202730: fetched 999 unique sections but Banner reported 1000. || ERR Existing output left untouched.
+OK   AC8b case3 exit 0
+OK   AC8b case3 two re-fetch warnings (one per term)  OUT ::warning::Term 202710: re-fetched after a paging shortfall (699/700) / OUT ::warning::Term 202730: re-fetched after a paging shortfall (999/1000)
+OK   AC8b case3 each term searched exactly twice
+OK   AC8b case3 sleeps all >= 2500
+OK   AC5 setup run ok
+OK   AC5 room-drop exit 1 with unknown-campus warning before error  warn@3 err@4
+OK   AC5 file byte-identical
+OK   AC6 --today "2026-13-45" -> exit 1, 0 requests  ERR Error: Invalid --today: 2026-13-45 | ERR Existing output left untouched.
+OK   AC6 --today "2026-02-29" -> exit 1, 0 requests  ERR Error: Invalid --today: 2026-02-29 | ERR Existing output left untouched.
+OK   AC6 --today "2026-11-1" -> exit 1, 0 requests  ERR Error: Invalid --today: 2026-11-1 | ERR Existing output left untouched.
+OK   AC6 --today "tomorrow" -> exit 1, 0 requests  ERR Error: Invalid --today: tomorrow | ERR Existing output left untouched.
+OK   AC6 --today "2026-04-31" -> exit 1, 0 requests  ERR Error: Invalid --today: 2026-04-31 | ERR Existing output left untouched.
+OK   AC6 --today "" -> exit 1, 0 requests  ERR Error: Invalid --today:  | ERR Existing output left untouched.
+OK   AC6 2028-02-29 accepted (gets past parsing)  ERR Error: No terms left after the date window for 2028-02-29. | ERR Existing output left untouched.
+OK   AC1/2 kept rooms  QA-105A,QA-117,QA-AUD,QA-BLBX,QA-DEPT2,QA-NA1,QA-OS,QA-ROOM 5,QB-200
+OK   AC1 one Excluded warning  Excluded 9 placeholder rooms (10 meetings): QA-DEPT, QA-N/A, QA-NA, QA-OS1, QA-ROOM, QA-TBD, QA-os12, QA-tba, QB-DEPT
+OK   AC3 no multi-campus warning for QB
+OK   AC3 meetingCount counts placeholders + unassigned; roomed excludes them  meetingCount=20 roomed=9 (sections=20)
+OK   AC1 no OAK campus created by placeholder
+OK   AC4 deny-list invalid regex -> exit 1, 0 requests  ERR Error: /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa2b-dd0n6c/deny.json: roomPatterns.0: "^(OS$" is not a valid regex (Invalid regular expression: /^(OS$/i: Unterminated group)
+OK   AC4 deny-list empty -> exit 1, 0 requests  ERR Error: /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa2b-KRyDJa/deny.json: roomPatterns: must not be empty
+OK   AC4 deny-list extra key -> exit 1, 0 requests  ERR Error: /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa2b-4crjVS/deny.json: Unrecognized key: "buildingCodes"
+OK   AC4 deny-list not JSON -> exit 1, 0 requests  ERR Error: /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa2b-NGjqkx/deny.json: cannot read deny-list (Expected property name or '}' in JSON at position 1 (line 1 column 2))
+OK   AC4 deny-list empty string pattern -> exit 1, 0 requests  ERR Error: /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/qa2b-XYRqMN/deny.json: roomPatterns.0: must not be empty
+OK   AC7 Retry-After 301 -> exit 1, no sleep >= 301000, one request  ERR Error: GET classSearch/getTerms?searchTerm=&offset=1&max=100: HTTP 503 asks to retry after 301 s, over the 300 s limit
+ALL OK

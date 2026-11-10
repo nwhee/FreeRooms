@@ -3,6 +3,7 @@ import type { Building, Campus, Meeting, PartOfTerm, Room, Term } from "../../li
 import type { BannerMeetingTime, BannerSection, BannerTerm } from "./banner-client";
 import { addDays, parseBannerDate, parseBannerTime } from "./dates";
 import { decodeEntities } from "./entities";
+import { isPlaceholderRoom, placeholderWarning } from "./placeholders";
 
 /**
  * Banner sections -> the FR-0 schedule.json entities (docs/specs/FR-2.md,
@@ -45,8 +46,18 @@ function normalizeName(name: string): string {
     .trim();
 }
 
+/**
+ * Banner text made safe to store and print: entities decoded, control
+ * characters (newlines included) turned into spaces, then trimmed. Stops a
+ * Banner string from starting its own workflow command line (FR-2b security);
+ * `escapeCommandData` in index.ts is the second layer.
+ */
+export function cleanText(value: string): string {
+  return decodeEntities(value).replace(/\p{Cc}/gu, " ").trim();
+}
+
 export function stripViewOnly(description: string): string {
-  return decodeEntities(description).replace(VIEW_ONLY_SUFFIX, "").trim();
+  return cleanText(description).replace(VIEW_ONLY_SUFFIX, "").trim();
 }
 
 /**
@@ -108,9 +119,10 @@ function dayMask(meetingTime: BannerMeetingTime): number {
   return DAY_BITS.reduce((mask, [day, bit]) => (meetingTime[day] === true ? mask | bit : mask), 0);
 }
 
+/** The cleaned value, or null when it's missing or blank. */
 function nonEmpty(value: string | null | undefined): string | null {
-  const trimmed = value?.trim() ?? "";
-  return trimmed === "" ? null : trimmed;
+  const cleaned = cleanText(value ?? "");
+  return cleaned === "" ? null : cleaned;
 }
 
 function meetingTimes(section: BannerSection): BannerMeetingTime[] {
@@ -159,8 +171,18 @@ function rankByCount(counts: Map<string, number>): string[] {
   return [...counts].sort((a, b) => b[1] - a[1] || compare(a[0], b[0])).map(([key]) => key);
 }
 
-export function transformTerms(fetched: readonly FetchedTerm[], today: string): TransformResult {
+/**
+ * `placeholderPatterns` is the deny-list from placeholder-rooms.json. A
+ * placeholder meeting counts as a candidate but not as roomed (FR-2b), and is
+ * dropped before building campuses are settled.
+ */
+export function transformTerms(
+  fetched: readonly FetchedTerm[],
+  today: string,
+  placeholderPatterns: readonly RegExp[],
+): TransformResult {
   const warnings: string[] = [];
+  const placeholderMeetings = new Map<string, number>();
   const skipped: TransformResult["skipped"] = [];
   const terms: Term[] = [];
   const rawMeetings: RawMeeting[] = [];
@@ -192,7 +214,7 @@ export function transformTerms(fetched: readonly FetchedTerm[], today: string): 
     let roomedMeetingCount = 0;
     let unusable = 0;
     for (const section of sections) {
-      const campusName = decodeEntities(section.campusDescription ?? "").trim();
+      const campusName = cleanText(section.campusDescription ?? "");
       const campus = campusFromBannerName(campusName);
       const partOfTerm = nonEmpty(section.partOfTerm) ?? DEFAULT_PART_OF_TERM;
       for (const meetingTime of meetingTimes(section)) {
@@ -209,6 +231,10 @@ export function transformTerms(fetched: readonly FetchedTerm[], today: string): 
         meetingCount++;
         const room = nonEmpty(meetingTime.room);
         if (building === null || room === null) continue;
+        if (isPlaceholderRoom(placeholderPatterns, room)) {
+          increment(placeholderMeetings, `${building}-${room}`);
+          continue;
+        }
         roomedMeetingCount++;
 
         const start = parseBannerTime(meetingTime.beginTime);
@@ -230,7 +256,7 @@ export function transformTerms(fetched: readonly FetchedTerm[], today: string): 
           partOfTerm,
           termCode: fetchedTerm.code,
           building,
-          buildingName: buildingName === null ? null : decodeEntities(buildingName),
+          buildingName,
           room,
           campus: campus.code,
         });
@@ -254,6 +280,8 @@ export function transformTerms(fetched: readonly FetchedTerm[], today: string): 
   for (const [name, count] of [...unknownCampuses].sort((a, b) => compare(a[0], b[0]))) {
     warnings.push(`Unknown campus "${name}" on ${count} meeting${count === 1 ? "" : "s"}; skipped.`);
   }
+  const excluded = placeholderWarning(placeholderMeetings);
+  if (excluded !== null) warnings.push(excluded);
 
   // One campus per building: the most common section campus, ties to the lowest code.
   const campusCounts = new Map<string, Map<string, number>>();

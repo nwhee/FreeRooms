@@ -26,12 +26,13 @@ describe("size warning (FR-2 AC10)", () => {
     const meeting = BASE.meetings[0];
     const big: ScheduleFile = { ...BASE, meetings: Array.from({ length: 60_000 }, () => meeting) };
     expect(Buffer.byteLength(serializeSchedule(big))).toBeGreaterThan(SIZE_WARNING_BYTES);
-    const result = withSizeWarning(big);
-    expect(result.warnings.at(-1)).toMatch(/^schedule\.json is \d+\.\d MB, over the 5 MB budget\.$/);
+    const { file, warning } = withSizeWarning(big);
+    expect(warning).toMatch(/^schedule\.json is \d+\.\d MB, over the 5 MB budget\.$/);
+    expect(file.warnings.at(-1)).toBe(warning);
   });
 
   it("adds nothing at or under 5 MB", () => {
-    expect(withSizeWarning(BASE)).toBe(BASE);
+    expect(withSizeWarning(BASE)).toEqual({ file: BASE, warning: null });
   });
 });
 

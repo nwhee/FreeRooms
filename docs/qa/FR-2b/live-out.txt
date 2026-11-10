@@ -1,0 +1,21 @@
+validateSchedule ok: true 
+Excluded warnings: [
+  'Excluded 8 placeholder rooms (168 meetings): BOS-DEPT, MSI-NA, NY-FND-OS1, NY-FND-OS2, NY-FND-OS3, NY-FND-OS4, NY-FND-OS5, XCR-ROOM'
+]
+Excluded ids exactly the 8: true
+rooms 564, P=572, window 536-592: true
+  EL-AUD: in FR-2 file=true in FR-2b file=true
+  NY-CH-BLBX: in FR-2 file=true in FR-2b file=true
+  NY-CH-DS: in FR-2 file=true in FR-2b file=true
+  NY-CH-GHE: in FR-2 file=true in FR-2b file=true
+  NY-CH-GHW: in FR-2 file=true in FR-2b file=true
+  NY-NH-THTR: in FR-2 file=true in FR-2b file=true
+placeholder ids still present: []
+placeholder meetings left: 0
+rooms gone vs FR-2 (8): BOS-DEPT,MSI-NA,NY-FND-OS1,NY-FND-OS2,NY-FND-OS3,NY-FND-OS4,NY-FND-OS5,XCR-ROOM | added (0): 
+rooms with no digit in room: EL-AUD,NY-CH-BLBX,NY-CH-DS,NY-CH-GHE,NY-CH-GHW,NY-NH-THTR
+FR-2 file placeholder meetings per term (after collapse): {"202710":97,"202730":60}
+term 202710: meetingCount 7307 -> 7307 (Δ0); roomed 7010 -> 6907 (Δ-103)
+term 202730: meetingCount 5719 -> 5719 (Δ0); roomed 2297 -> 2232 (Δ-65)
+warnings: ["Excluded 8 placeholder rooms (168 meetings): BOS-DEPT, MSI-NA, NY-FND-OS1, NY-FND-OS2, NY-FND-OS3, NY-FND-OS4, NY-FND-OS5, XCR-ROOM","Building RG has sections from campuses BOS, OAK; assigned BOS."]
+'@' count: 0 bytes 1205983 generatedAt 2026-11-10T08:25:02.394Z

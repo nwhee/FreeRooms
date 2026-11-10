@@ -2,10 +2,11 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { buildCalendarBlock, CalendarFileError, loadCalendarFiles, missingCalendarWarnings } from "../../lib/calendar/load";
-import { type Term, validateSchedule } from "../../lib/data/schema";
+import { isIsoDate, type Term, validateSchedule } from "../../lib/data/schema";
 import { BannerClient, BannerError, type FetchLike, type Sleep } from "./banner-client";
 import { newYorkDate } from "./dates";
 import { roomDropProblems, vanishedTermProblems } from "./guards";
+import { loadPlaceholderPatterns, PlaceholderListError } from "./placeholders";
 import { dedupeSections, type FetchedTerm, selectTermsToFetch, transformTerms } from "./transform";
 import { buildScheduleFile, readExisting, serializeSchedule, shouldWrite, withSizeWarning, writeFileAtomic } from "./write";
 
@@ -20,6 +21,7 @@ export const DEFAULT_OUT = "public/data/schedule.json";
 export const DEFAULT_DELAY_MS = 3_000;
 export const MIN_DELAY_MS = 1_000;
 const DEFAULT_CALENDAR_DIR = fileURLToPath(new URL("../../data/calendar", import.meta.url));
+const DEFAULT_PLACEHOLDER_FILE = fileURLToPath(new URL("./placeholder-rooms.json", import.meta.url));
 
 export type MainDeps = {
   fetch: FetchLike;
@@ -28,6 +30,7 @@ export type MainDeps = {
   stdout: (line: string) => void;
   stderr: (line: string) => void;
   calendarDir: string;
+  placeholderFile: string;
 };
 
 const defaultDeps: MainDeps = {
@@ -37,6 +40,7 @@ const defaultDeps: MainDeps = {
   stdout: (line) => console.log(line),
   stderr: (line) => console.error(line),
   calendarDir: DEFAULT_CALENDAR_DIR,
+  placeholderFile: DEFAULT_PLACEHOLDER_FILE,
 };
 
 /** A reason to stop with exit 1 and leave the existing file untouched. */
@@ -67,8 +71,8 @@ function parseOptions(argv: string[]): Options {
   } catch (error) {
     throw new RunFailure(error instanceof Error ? error.message : String(error));
   }
-  if (values.today !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(values.today)) {
-    throw new RunFailure(`--today must be YYYY-MM-DD, got ${JSON.stringify(values.today)}`);
+  if (values.today !== undefined && !isIsoDate(values.today)) {
+    throw new RunFailure(`Invalid --today: ${values.today}`);
   }
   const delayMs = values["delay-ms"] === undefined ? DEFAULT_DELAY_MS : Number(values["delay-ms"]);
   if (!Number.isInteger(delayMs) || delayMs < MIN_DELAY_MS) {
@@ -103,11 +107,30 @@ export function summaryLine(file: {
   ].join(" | ");
 }
 
-async function run(options: Options, deps: MainDeps): Promise<void> {
+/** Warnings so far. Owned by main(), so a failed run still prints them (FR-2b). */
+type WarningLog = { warnings: string[]; printed: boolean };
+
+/**
+ * Escapes a workflow-command message the way @actions/core does, so a Banner
+ * string with a newline can't start its own `::error::` (or any) command.
+ * Only the printed line is escaped; `warnings[]` in the file keeps the raw text.
+ */
+export function escapeCommandData(text: string): string {
+  return text.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+}
+
+function printWarnings(log: WarningLog, print: (line: string) => void): void {
+  if (log.printed) return;
+  log.printed = true;
+  for (const text of log.warnings) print(`::warning::${escapeCommandData(text)}`);
+}
+
+async function run(options: Options, deps: MainDeps, warningLog: WarningLog): Promise<void> {
+  const { warnings } = warningLog;
   const startedAt = deps.now();
   const today = options.today ?? newYorkDate(startedAt);
   const log = deps.stdout;
-  const warnings: string[] = [];
+  const placeholderPatterns = loadPlaceholderPatterns(deps.placeholderFile);
 
   const existing = readExisting(options.out);
   if (existing.kind === "invalid") {
@@ -118,7 +141,12 @@ async function run(options: Options, deps: MainDeps): Promise<void> {
     (existingSchedule?.terms ?? []).filter((term) => term.endDate >= today).map((term) => term.code),
   );
 
-  const client = new BannerClient({ fetch: deps.fetch, sleep: deps.sleep, delayMs: options.delayMs });
+  const client = new BannerClient({
+    fetch: deps.fetch,
+    sleep: deps.sleep,
+    delayMs: options.delayMs,
+    now: () => deps.now().getTime(),
+  });
   const toFetch = selectTermsToFetch(await client.getTerms(), existingSchedule?.terms ?? [], today);
   if (toFetch.length === 0) throw new RunFailure("Banner lists no terms to fetch (every term is View Only).");
   log(`Today is ${today}. Fetching ${toFetch.map((term) => term.code).join(", ")}.`);
@@ -126,9 +154,19 @@ async function run(options: Options, deps: MainDeps): Promise<void> {
   const fetched: FetchedTerm[] = [];
   const emptyTerms = new Set<string>();
   for (const term of toFetch) {
-    const { totalCount, sections } = await client.searchTerm(term.code);
-    const unique = dedupeSections(sections).length;
+    let { totalCount, sections } = await client.searchTerm(term.code);
+    let unique = dedupeSections(sections).length;
     log(`  ${term.code} ${term.description}: ${unique} of ${totalCount} sections.`);
+    if (totalCount > 0 && unique < totalCount) {
+      // Banner's paging can repeat a row and skip another while data shifts.
+      // Re-fetch the term once from scratch (FR-2b Solution 5), then re-check.
+      warnings.push(
+        `Term ${term.code}: fetched ${unique} unique sections but Banner reported ${totalCount}; re-fetched once.`,
+      );
+      ({ totalCount, sections } = await client.searchTerm(term.code));
+      unique = dedupeSections(sections).length;
+      log(`  ${term.code} ${term.description}: re-fetched, ${unique} of ${totalCount} sections.`);
+    }
     if (totalCount > 0 && unique < totalCount) {
       throw new RunFailure(`Term ${term.code}: fetched ${unique} unique sections but Banner reported ${totalCount}.`);
     }
@@ -140,7 +178,7 @@ async function run(options: Options, deps: MainDeps): Promise<void> {
     fetched.push({ ...term, sections });
   }
 
-  const entities = transformTerms(fetched, today);
+  const entities = transformTerms(fetched, today, placeholderPatterns);
   for (const { code, reason } of entities.skipped) log(`  ${code} left out: ${reason}.`);
   warnings.push(...entities.warnings);
   if (entities.terms.length === 0) throw new RunFailure(`No terms left after the date window for ${today}.`);
@@ -157,7 +195,7 @@ async function run(options: Options, deps: MainDeps): Promise<void> {
     warnings.push(...problems.map((problem) => `--force overrode: ${problem}`));
   }
 
-  const file = withSizeWarning(
+  const { file, warning: sizeWarning } = withSizeWarning(
     buildScheduleFile({
       entities,
       calendar: buildCalendarBlock(calendarSources),
@@ -165,6 +203,7 @@ async function run(options: Options, deps: MainDeps): Promise<void> {
       generatedAt: startedAt.toISOString(),
     }),
   );
+  if (sizeWarning !== null) warnings.push(sizeWarning);
 
   const validation = validateSchedule(file);
   if (!validation.ok) {
@@ -176,7 +215,7 @@ async function run(options: Options, deps: MainDeps): Promise<void> {
     throw new RunFailure(`The output has ${file.rooms.length} rooms and ${file.meetings.length} meetings.`);
   }
 
-  for (const text of file.warnings) log(`::warning::${text}`);
+  printWarnings(warningLog, log);
   log(summaryLine(file));
   const seconds = Math.round((deps.now().getTime() - startedAt.getTime()) / 1000);
   log(`Banner requests: ${client.requestCount} in ${seconds} s.`);
@@ -195,11 +234,18 @@ async function run(options: Options, deps: MainDeps): Promise<void> {
 /** Runs the script and returns its exit code. Tests inject `deps`; nothing here calls process.exit. */
 export async function main(argv: string[], deps: Partial<MainDeps> = {}): Promise<number> {
   const resolved: MainDeps = { ...defaultDeps, ...deps };
+  const warningLog: WarningLog = { warnings: [], printed: false };
   try {
-    await run(parseOptions(argv), resolved);
+    await run(parseOptions(argv), resolved, warningLog);
     return 0;
   } catch (error) {
-    if (error instanceof RunFailure || error instanceof BannerError || error instanceof CalendarFileError) {
+    printWarnings(warningLog, resolved.stdout);
+    if (
+      error instanceof RunFailure ||
+      error instanceof BannerError ||
+      error instanceof CalendarFileError ||
+      error instanceof PlaceholderListError
+    ) {
       resolved.stderr(`Error: ${error.message}`);
     } else {
       resolved.stderr(`Error: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`);

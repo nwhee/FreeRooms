@@ -4,10 +4,12 @@ import { describe, expect, it } from "vitest";
 import { buildCalendarBlock, loadCalendarFiles } from "../../lib/calendar/load";
 import { validateSchedule } from "../../lib/data/schema";
 import { type BannerSection, searchPageSchema, termsPageSchema } from "./banner-client";
+import { loadPlaceholderPatterns } from "./placeholders";
 import { dedupeSections, type FetchedTerm, selectTermsToFetch, transformTerms } from "./transform";
 import { buildScheduleFile } from "./write";
 import { section } from "./__fixtures__/sections";
 
+const PLACEHOLDERS = loadPlaceholderPatterns(fileURLToPath(new URL("./placeholder-rooms.json", import.meta.url)));
 const CALENDAR = buildCalendarBlock(loadCalendarFiles(fileURLToPath(new URL("../../data/calendar", import.meta.url))));
 
 function fixture(name: string): unknown {
@@ -25,7 +27,7 @@ const FIXTURE_TERMS: FetchedTerm[] = [
 
 /** Transform, assemble and validate; fails the test if the output is invalid. */
 function run(fetched: FetchedTerm[], today = "2026-11-09") {
-  const result = transformTerms(fetched, today);
+  const result = transformTerms(fetched, today, PLACEHOLDERS);
   const file = buildScheduleFile({
     entities: result,
     calendar: CALENDAR,
@@ -183,10 +185,10 @@ describe("term discovery and window (FR-2 AC2)", () => {
 
   it("drops a term that starts more than 120 days after today", () => {
     const later = term("202750", [section({ crn: "1", term: "202750", meetings: [{ startDate: "05/12/2027", endDate: "08/22/2027" }] })]);
-    expect(transformTerms([later], "2027-01-11").skipped).toEqual([
+    expect(transformTerms([later], "2027-01-11", PLACEHOLDERS).skipped).toEqual([
       { code: "202750", reason: "starts 2027-05-12, after 2027-05-11" },
     ]);
-    expect(transformTerms([later], "2027-01-12").terms.map((t) => t.code)).toEqual(["202750"]);
+    expect(transformTerms([later], "2027-01-12", PLACEHOLDERS).terms.map((t) => t.code)).toEqual(["202750"]);
   });
 
   it("sets term startDate from the earliest meeting even when it has no room", () => {
@@ -300,7 +302,7 @@ describe("transform edge cases", () => {
   });
 
   it("skips a term with no sections", () => {
-    expect(transformTerms([term("202715", [])], "2026-11-09")).toMatchObject({
+    expect(transformTerms([term("202715", [])], "2026-11-09", PLACEHOLDERS)).toMatchObject({
       terms: [],
       skipped: [{ code: "202715", reason: "no sections" }],
     });

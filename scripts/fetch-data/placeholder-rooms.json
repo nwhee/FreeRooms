@@ -1,0 +1,1 @@
+{ "roomPatterns": ["^DEPT$", "^NA$", "^N/A$", "^ROOM$", "^TBA$", "^TBD$", "^OS\\d+$"] }
