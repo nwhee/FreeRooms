@@ -92,6 +92,8 @@ end-of-run summary so the user can check it.
 - Adding secrets, credentials or logins anywhere
 - A FAIL from `security-reviewer`, even if every other agent passes the work
 - Deleting data or files the team didn't create
+- Changing anything outside this project: the user's global Claude config
+  (`~/.claude/`), the Setup kit, or other projects. Propose the change and wait for a yes.
 
 **When a doer and an auditor disagree:** send the verdict back to the doer once. If
 the auditor still says FAIL on the second pass, stop and give the user both positions
