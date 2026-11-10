@@ -259,7 +259,9 @@ describe("loadCalendarFiles (FR-6 AC2)", () => {
 });
 
 describe("buildCalendarBlock (FR-6 AC3)", () => {
-  const block = buildCalendarBlock(loadCalendarFiles(CALENDAR_DIR));
+  const block = buildCalendarBlock(
+    loadCalendarFiles(CALENDAR_DIR).filter((source) => source.academicYear === "2026-2027"),
+  );
   const entry = (label: string) => block.noClassDates.find((item) => item.label === label);
 
   it("passes the calendar part of scheduleFileSchema", () => {
