@@ -20,6 +20,7 @@ public/data/schedule.json
 *.pem
 
 # Tools
+.claude/worktrees/
 .vercel/
 .DS_Store
 playwright-report/

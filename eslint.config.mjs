@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Agent worktrees and QA probe scripts are not app code.
+    ".claude/**",
+    "docs/**",
   ]),
 ]);
 
