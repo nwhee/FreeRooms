@@ -35,6 +35,12 @@ A student who walks to "Boston DEPT" finds nothing. The FR-2 review also found:
    - A `Retry-After` over 300 s (seconds or HTTP-date form) fails the request immediately, without waiting.
    - More than 100 `searchResults` pages for one term fails the run.
 
+5. **One re-fetch on a paging shortfall:** Banner sometimes pages inconsistently. On 2026-11-10, 202710 returned one section twice and skipped another: `fetched 8473 unique sections but Banner reported 8474`. The day before it gave 8474/8474. So when a term's unique sections are fewer than `totalCount`:
+   - Re-fetch that term once from scratch (`resetDataForm` → `term/search` → all pages, with the same polite delay), then re-check.
+   - Emit `::warning::Term <code>: fetched <n> unique sections but Banner reported <total>; re-fetched once.`
+   - If the shortfall persists, fail as FR-2 does today.
+   - There's at most one re-fetch per term per run.
+
 FR-2's behaviour for an invalid existing output file stays unchanged. See `docs/decisions.md`.
 
 ## Acceptance criteria
@@ -53,7 +59,12 @@ Tests are in `scripts/fetch-data/*.test.ts` with mocked fetch and no network, un
   - `Retry-After: 300` sleeps 300,000 ms, then retries.
   - An HTTP-date 10 minutes after the injected "now" fails, and one 60 s after it sleeps 60,000 ms.
 - [ ] AC8 **Page cap:** a term whose mocked pages never end (always 500 rows, `totalCount` 60,000) fails after exactly 100 `searchResults` requests, with a message naming the term.
-- [ ] AC9 **Live smoke (manual, a single polite run, output pasted in the PR):** first record `P` = the room count of the current `public/data/schedule.json`. Then run `npm run fetch-data -- --out /tmp/schedule.json` once, with the default ≥ 2 s delay.
+- [ ] AC8b **Re-fetch on shortfall (fake Banner, request log):**
+  - Case 1: the first pass for term T has one row duplicated and one dropped (`totalCount` 1,000, 999 unique), and the second pass is clean. The run exits 0, prints the re-fetch `::warning::` naming T, and the output contains the previously dropped section.
+  - Case 2: both passes are short. The run exits 1, still printing the warning, and the request log shows exactly two `resetDataForm` → `term/search` → pages sequences for T, so exactly one re-fetch.
+  - Case 3: two terms are both short on their first pass and clean on the second. Each is re-fetched once.
+  - In every case, the injected sleep between requests stays ≥ the configured delay.
+- [ ] AC9 **Live smoke (manual, a single polite run, output pasted in the PR):** first record `P` = the room count of the current `public/data/schedule.json`. Then run `npm run fetch-data -- --out /tmp/schedule.json` once, with the default ≥ 2 s delay. The run may include up to one re-fetch per term (Solution 5). If it does, paste the re-fetch warning. A shortfall after the re-fetch fails the AC; don't re-run it repeatedly.
   - The `Excluded …` warning lists exactly `BOS-DEPT, MSI-NA, NY-FND-OS1, NY-FND-OS2, NY-FND-OS3, NY-FND-OS4, NY-FND-OS5, XCR-ROOM`. Any other id in that list fails this AC and goes back to the PM to adjust the patterns.
   - `jq '.rooms | length'` is within ±5% of `P − 8` (for P = 572: 536–592).
   - `jq` confirms that `EL-AUD`, `NY-CH-BLBX`, `NY-CH-DS`, `NY-CH-GHE`, `NY-CH-GHW` and `NY-NH-THTR` are still present, if they're in the current file.
