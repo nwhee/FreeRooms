@@ -1,0 +1,122 @@
+{
+  "defaults": {
+    "software-engineer": [
+      "implementation-patterns",
+      "testing-patterns"
+    ],
+    "product-manager": [
+      "spec-writing"
+    ],
+    "vp-engineering": [
+      "review-correctness",
+      "review-security",
+      "review-maintainability",
+      "review-performance",
+      "review-test-coverage"
+    ],
+    "vp-product": [
+      "review-spec-quality"
+    ],
+    "security-reviewer": [
+      "security-app",
+      "security-supply-chain",
+      "security-data-privacy"
+    ],
+    "qa-tester": [
+      "qa-testing"
+    ],
+    "design-reviewer": [
+      "design-review"
+    ]
+  },
+  "appliesTo": {
+    "software-engineer": "code",
+    "vp-engineering": "code",
+    "product-manager": "none",
+    "vp-product": "none",
+    "security-reviewer": "none",
+    "qa-tester": "code",
+    "design-reviewer": "code"
+  },
+  "rules": [
+    {
+      "files": [
+        "app/**"
+      ],
+      "skills": [
+        "nextjs-app-router"
+      ]
+    },
+    {
+      "files": [
+        "**/*.tsx",
+        "**/*.css"
+      ],
+      "skills": [
+        "tailwind-conventions"
+      ]
+    },
+    {
+      "files": [
+        "components/**"
+      ],
+      "skills": [
+        "shadcn-ui-patterns"
+      ]
+    },
+    {
+      "files": [
+        "**/*table*",
+        "**/*Table*",
+        "**/columns.tsx"
+      ],
+      "skills": [
+        "data-table-patterns"
+      ]
+    },
+    {
+      "files": [
+        "lib/db/**",
+        "lib/schemas/**",
+        "models/**",
+        "migrations/**"
+      ],
+      "skills": [
+        "mongodb-patterns"
+      ]
+    }
+  ],
+  "securityTriggers": [
+    ".github/**",
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "middleware.ts",
+    "**/auth/**",
+    "**/*auth*",
+    "**/*session*",
+    "**/*secret*",
+    "**/*token*",
+    ".env*",
+    "next.config.*",
+    "vercel.json",
+    "scripts/**",
+    "**/api/**",
+    "**/route.ts",
+    "**/actions.ts",
+    "**/*fetch*",
+    "**/*scrape*",
+    "**/*crawl*",
+    "Dockerfile",
+    "**/*.sh"
+  ],
+  "designTriggers": [
+    "app/**/*.tsx",
+    "components/**",
+    "**/*.css",
+    "tailwind.config.*",
+    "app/**/layout.tsx",
+    "public/**"
+  ]
+}

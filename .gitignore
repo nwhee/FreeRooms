@@ -1,0 +1,15 @@
+# Dependencies and builds
+node_modules/
+.next/
+out/
+coverage/
+
+# Env files (never commit secrets)
+.env*
+!.env.example
+
+# Tools
+.vercel/
+.DS_Store
+playwright-report/
+test-results/
