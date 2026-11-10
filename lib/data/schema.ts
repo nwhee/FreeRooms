@@ -3,7 +3,8 @@ import { z } from "zod";
 /**
  * The schedule.json data contract, schemaVersion 1 (docs/specs/FR-0-overview.md).
  * Field-level rules live in the Zod schema; rules that compare fields or
- * entities run in `validateSchedule` after the parse.
+ * entities run in `validateSchedule` after the parse. Objects are strict:
+ * unknown keys are rejected, so a typo in the writer fails loudly.
  */
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -41,13 +42,13 @@ function intRange(min: number, max: number) {
   return z.int({ error }).min(min, { error }).max(max, { error });
 }
 
-export const partOfTermSchema = z.object({
+export const partOfTermSchema = z.strictObject({
   code: z.string().min(1),
   startDate: isoDateSchema,
   endDate: isoDateSchema,
 });
 
-export const termSchema = z.object({
+export const termSchema = z.strictObject({
   code: z.string().min(1),
   description: z.string(),
   startDate: isoDateSchema,
@@ -57,7 +58,7 @@ export const termSchema = z.object({
   roomedMeetingCount: countSchema,
 });
 
-export const campusSchema = z.object({
+export const campusSchema = z.strictObject({
   code: z.string().min(1),
   name: z.string(),
   timezone: z.string().refine(isValidTimeZone, {
@@ -68,14 +69,14 @@ export const campusSchema = z.object({
   roomCount: countSchema,
 });
 
-export const buildingSchema = z.object({
+export const buildingSchema = z.strictObject({
   code: z.string().min(1),
   name: z.string(),
   campus: z.string().min(1),
   roomCount: countSchema,
 });
 
-export const roomSchema = z.object({
+export const roomSchema = z.strictObject({
   id: z.string().min(1),
   campus: z.string().min(1),
   building: z.string().min(1),
@@ -83,7 +84,7 @@ export const roomSchema = z.object({
   displayName: z.string(),
 });
 
-export const meetingSchema = z.object({
+export const meetingSchema = z.strictObject({
   roomId: z.string().min(1),
   days: intRange(1, 127),
   start: intRange(0, 1439),
@@ -94,27 +95,27 @@ export const meetingSchema = z.object({
   termCode: z.string().min(1),
 });
 
-export const noClassDateSchema = z.object({
+export const noClassDateSchema = z.strictObject({
   start: isoDateSchema,
   end: isoDateSchema,
   label: z.string(),
   campuses: z.array(z.string().min(1)),
 });
 
-export const examPeriodSchema = z.object({
+export const examPeriodSchema = z.strictObject({
   start: isoDateSchema,
   end: isoDateSchema,
   label: z.string(),
   partsOfTerm: z.array(z.string().min(1)).min(1, { error: "must not be empty" }),
 });
 
-export const calendarSchema = z.object({
+export const calendarSchema = z.strictObject({
   termYears: z.array(z.string().regex(/^\d{4}$/, { error: "must be a 4-digit year" })),
   noClassDates: z.array(noClassDateSchema),
   examPeriods: z.array(examPeriodSchema),
 });
 
-export const scheduleFileSchema = z.object({
+export const scheduleFileSchema = z.strictObject({
   schemaVersion: z.literal(1),
   generatedAt: z.iso.datetime({ error: "must be an ISO 8601 UTC timestamp" }),
   terms: z.array(termSchema),
@@ -154,11 +155,29 @@ function countBy<T>(items: readonly T[], key: (item: T) => string): Map<string, 
   return counts;
 }
 
+/** One error per repeated key, pointing at the repeat and its first occurrence. */
+function duplicateErrors<T>(items: readonly T[], list: string, field: string, key: (item: T) => string): string[] {
+  const firstIndex = new Map<string, number>();
+  const errors: string[] = [];
+  items.forEach((item, i) => {
+    const value = key(item);
+    const first = firstIndex.get(value);
+    if (first === undefined) firstIndex.set(value, i);
+    else errors.push(`${list}[${i}].${field}: duplicate "${value}" (first at ${list}[${first}])`);
+  });
+  return errors;
+}
+
 /** The FR-0 invariants that compare fields or entities. Assumes a successful parse. */
 function checkInvariants(data: ScheduleFile): string[] {
-  const errors: string[] = [];
+  const errors: string[] = [
+    ...duplicateErrors(data.campuses, "campuses", "code", (campus) => campus.code),
+    ...duplicateErrors(data.buildings, "buildings", "code", (building) => building.code),
+    ...duplicateErrors(data.rooms, "rooms", "id", (room) => room.id),
+  ];
   const campusCodes = new Set(data.campuses.map((campus) => campus.code));
-  const buildingCodes = new Set(data.buildings.map((building) => building.code));
+  const termCodes = new Set(data.terms.map((term) => term.code));
+  const campusOfBuilding = new Map(data.buildings.map((building) => [building.code, building.campus]));
   const roomIds = new Set(data.rooms.map((room) => room.id));
 
   const checkRange = (path: string, startKey: string, start: string, endKey: string, end: string) => {
@@ -195,6 +214,8 @@ function checkInvariants(data: ScheduleFile): string[] {
         `campuses[${i}].roomCount: is ${campus.roomCount} but ${rooms} rooms have campus "${campus.code}"`,
       );
     }
+    // FR-0: `campuses` lists only campuses with at least one room.
+    if (rooms === 0) errors.push(`campuses[${i}]: campus "${campus.code}" has no rooms`);
   });
 
   data.buildings.forEach((building, i) => {
@@ -210,17 +231,25 @@ function checkInvariants(data: ScheduleFile): string[] {
   });
 
   data.rooms.forEach((room, i) => {
-    if (!buildingCodes.has(room.building)) {
+    const buildingCampus = campusOfBuilding.get(room.building);
+    if (buildingCampus === undefined) {
       errors.push(`rooms[${i}].building: unknown building "${room.building}"`);
     }
     if (!campusCodes.has(room.campus)) {
       errors.push(`rooms[${i}].campus: unknown campus "${room.campus}"`);
+    } else if (buildingCampus !== undefined && room.campus !== buildingCampus) {
+      errors.push(
+        `rooms[${i}].campus: is "${room.campus}" but building "${room.building}" is in campus "${buildingCampus}"`,
+      );
     }
   });
 
   data.meetings.forEach((meeting, i) => {
     if (!roomIds.has(meeting.roomId)) {
       errors.push(`meetings[${i}].roomId: unknown room "${meeting.roomId}"`);
+    }
+    if (!termCodes.has(meeting.termCode)) {
+      errors.push(`meetings[${i}].termCode: unknown term "${meeting.termCode}"`);
     }
     if (meeting.start >= meeting.end) {
       errors.push(`meetings[${i}]: start ${meeting.start} is not before end ${meeting.end}`);

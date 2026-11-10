@@ -171,6 +171,86 @@ describe("validateSchedule (FR-1 AC7)", () => {
     expect(errorsFor(data)).toEqual(["generatedAt: must be an ISO 8601 UTC timestamp"]);
   });
 
+  it("rejects a non-UTC generatedAt and accepts UTC without milliseconds", () => {
+    const data = fixture();
+    data.generatedAt = "2026-11-09T07:00:00+01:00";
+    expect(errorsFor(data)).toEqual(["generatedAt: must be an ISO 8601 UTC timestamp"]);
+
+    data.generatedAt = "2026-11-09T07:00:00Z";
+    expect(validateSchedule(data).ok).toBe(true);
+  });
+
+  it("reports a duplicate campus code", () => {
+    const data = fixture();
+    data.campuses[1].code = "BOS";
+    expect(errorsFor(data)).toContain('campuses[1].code: duplicate "BOS" (first at campuses[0])');
+  });
+
+  it("reports a duplicate building code", () => {
+    const data = fixture();
+    data.buildings[2].code = "DK";
+    expect(errorsFor(data)).toContain('buildings[2].code: duplicate "DK" (first at buildings[0])');
+  });
+
+  it("reports a duplicate room id", () => {
+    const data = fixture();
+    data.rooms[3].id = "SL-033";
+    expect(errorsFor(data)).toContain('rooms[3].id: duplicate "SL-033" (first at rooms[2])');
+  });
+
+  it("reports a room whose campus differs from its building's campus", () => {
+    const data = fixture();
+    // Counts stay consistent, so the campus mismatch is the only error.
+    data.rooms[2].campus = "LDN";
+    data.campuses[0].roomCount = 2;
+    data.campuses[1].roomCount = 2;
+    expect(errorsFor(data)).toEqual([
+      'rooms[2].campus: is "LDN" but building "SL" is in campus "BOS"',
+    ]);
+  });
+
+  it("reports a meeting with an unknown termCode", () => {
+    const data = fixture();
+    data.meetings[0].termCode = "202799";
+    expect(errorsFor(data)).toEqual(['meetings[0].termCode: unknown term "202799"']);
+  });
+
+  it("rejects unknown keys at the top level and in nested objects", () => {
+    expect(errorsFor({ ...fixture(), extra: true })).toEqual([
+      expect.stringMatching(/^Unrecognized key.*"extra"/),
+    ]);
+
+    const data = fixture();
+    Object.assign(data.rooms[0], { capacity: 30 });
+    Object.assign(data.calendar, { source: "pdf" });
+    expect(errorsFor(data)).toEqual([
+      expect.stringMatching(/^rooms\[0\]: Unrecognized key.*"capacity"/),
+      expect.stringMatching(/^calendar: Unrecognized key.*"source"/),
+    ]);
+  });
+
+  it("accepts empty campuses, buildings, rooms and meetings when counts are consistent", () => {
+    // FR-0 has no non-empty invariant; FR-2 refuses to write 0 rooms or 0 meetings itself.
+    const data = fixture();
+    data.campuses = [];
+    data.buildings = [];
+    data.rooms = [];
+    data.meetings = [];
+    expect(validateSchedule(data)).toEqual({ ok: true, data });
+  });
+
+  it("reports a campus with no rooms (FR-0: only campuses with at least one room)", () => {
+    const data = fixture();
+    data.campuses.push({
+      code: "VAN",
+      name: "Vancouver, Canada",
+      timezone: "America/Vancouver",
+      buildingCount: 0,
+      roomCount: 0,
+    });
+    expect(errorsFor(data)).toEqual(['campuses[2]: campus "VAN" has no rooms']);
+  });
+
   it("reports every failure at once", () => {
     const data = fixture();
     data.meetings[0].roomId = "XX-1";
