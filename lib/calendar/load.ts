@@ -76,13 +76,6 @@ const calendarSourceSchema = z
         path: ["academicYear"],
         message: `${source.academicYear} is not two consecutive years`,
       });
-    } else if (source.termYear !== String(second)) {
-      // Term codes are prefixed with the year the academic year ends in (Fall 2026 = 202710).
-      ctx.addIssue({
-        code: "custom",
-        path: ["termYear"],
-        message: `must be ${second} for academic year ${source.academicYear}, got ${source.termYear}`,
-      });
     }
   });
 
