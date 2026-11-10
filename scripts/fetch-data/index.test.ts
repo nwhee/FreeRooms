@@ -200,7 +200,13 @@ describe("fail loudly (FR-2 AC5)", () => {
       { ...FIXTURE_BANNER, totalCounts: { "202730": 40 } },
       /Term 202730: fetched 16 unique sections but Banner reported 40/,
     );
-    expect(result.fake.log.filter((entry) => entry.startsWith("page:202730"))).toEqual(["page:202730@0", "page:202730@17"]);
+    // FR-2b Solution 7: one full re-fetch before failing.
+    expect(result.fake.log.filter((entry) => entry.startsWith("page:202730"))).toEqual([
+      "page:202730@0",
+      "page:202730@17",
+      "page:202730@0",
+      "page:202730@17",
+    ]);
   });
 
   it("exits 1 when validateSchedule fails", async () => {
@@ -539,6 +545,56 @@ describe("warnings survive a failed run (FR-2b AC5)", () => {
     expect(warning).toBeGreaterThanOrEqual(0);
     expect(failure).toBeGreaterThan(warning);
     expect(log.filter((line) => line.includes("::warning::"))).toHaveLength(1);
+    expect(readFileSync(out, "utf8")).toBe(bytes);
+  });
+});
+
+describe("paging-shortfall re-fetch (FR-2b Solution 7)", () => {
+  const TOTAL = 1_200;
+  const clean = roomedSections("202730", TOTAL);
+  /** Banner's paging drift: row 700 is repeated where row 701 should be. */
+  const drifted = clean.map((row, i) => (i === 701 ? clean[700] : row));
+
+  /** A fake Banner that serves `passes[n]` on the n-th term/search for 202730 (the last one repeats). */
+  function bannerWithPasses(passes: unknown[][]): FakeBannerOptions {
+    let pass = -1;
+    return {
+      terms: [SPRING],
+      totalCounts: { "202730": TOTAL },
+      intercept: (request) => {
+        if (request.url.includes("term/search")) pass++;
+        if (!request.url.includes("searchResults/searchResults")) return undefined;
+        const params = new URL(request.url).searchParams;
+        const offset = Number(params.get("pageOffset"));
+        const rows = passes[Math.min(pass, passes.length - 1)].slice(offset, offset + 500);
+        return new Response(JSON.stringify({ success: true, totalCount: TOTAL, data: rows }));
+      },
+    };
+  }
+
+  it("re-fetches once after a duplicated-and-dropped row, then exits 0 with the warning", async () => {
+    const out = join(tempDir(), "schedule.json");
+    const result = await runMain(["--out", out], bannerWithPasses([drifted, clean]));
+    expect(result.errorText).toBe("");
+    expect(result.code).toBe(0);
+    const warning = "Term 202730: re-fetched after a paging shortfall (1199/1200)";
+    expect(result.stdout).toContain(`::warning::${warning}`);
+    expect(readOut(out).warnings).toContain(warning);
+    expect(readOut(out).rooms).toHaveLength(TOTAL);
+    // getTerms + 2 passes x (reset, term/search, 3 pages).
+    expect(result.fake.requests).toHaveLength(1 + 2 * 5);
+  });
+
+  it("exits 1 when short on both passes, after exactly one re-fetch", async () => {
+    const { out, bytes } = existingOut(OLD_SCHEDULE);
+    const result = await runMain(["--out", out], bannerWithPasses([drifted]));
+    expect(result.code).toBe(1);
+    expect(result.errorText).toMatch(/Term 202730: fetched 1199 unique sections but Banner reported 1200/);
+    expect(result.fake.requests.filter((r) => r.url.includes("resetDataForm"))).toHaveLength(2);
+    expect(result.fake.requests.filter((r) => r.url.includes("term/search"))).toHaveLength(2);
+    expect(result.fake.requests.filter((r) => r.url.includes("searchResults/searchResults"))).toHaveLength(6);
+    expect(result.fake.requests).toHaveLength(1 + 2 * 5);
+    expect(result.stdout).toContain("::warning::Term 202730: re-fetched after a paging shortfall (1199/1200)");
     expect(readFileSync(out, "utf8")).toBe(bytes);
   });
 });

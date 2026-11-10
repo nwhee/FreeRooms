@@ -145,9 +145,17 @@ async function run(options: Options, deps: MainDeps, warningLog: WarningLog): Pr
   const fetched: FetchedTerm[] = [];
   const emptyTerms = new Set<string>();
   for (const term of toFetch) {
-    const { totalCount, sections } = await client.searchTerm(term.code);
-    const unique = dedupeSections(sections).length;
+    let { totalCount, sections } = await client.searchTerm(term.code);
+    let unique = dedupeSections(sections).length;
     log(`  ${term.code} ${term.description}: ${unique} of ${totalCount} sections.`);
+    if (totalCount > 0 && unique < totalCount) {
+      // Banner's paging can repeat a row and skip another while data shifts.
+      // Re-fetch the term once from scratch (FR-2b Solution 7), then re-check.
+      warnings.push(`Term ${term.code}: re-fetched after a paging shortfall (${unique}/${totalCount})`);
+      ({ totalCount, sections } = await client.searchTerm(term.code));
+      unique = dedupeSections(sections).length;
+      log(`  ${term.code} ${term.description}: re-fetched, ${unique} of ${totalCount} sections.`);
+    }
     if (totalCount > 0 && unique < totalCount) {
       throw new RunFailure(`Term ${term.code}: fetched ${unique} unique sections but Banner reported ${totalCount}.`);
     }
