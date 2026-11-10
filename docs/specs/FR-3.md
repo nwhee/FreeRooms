@@ -1,7 +1,7 @@
 # FR-3 — Nightly data workflow and README
 
-**Status:** approved by user 2026-11-09 (revision 3)
-**Owner:** product-manager · **Approved by:** vp-product, <user>
+**Status:** approved by user 2026-11-09 (revision 4: three-job least-privilege workflow, team consensus 2026-11-10)
+**Owner:** product-manager · **Approved by:** vp-product, <user>. The revision 4 changes are by team consensus (vp-product recommended them; security-reviewer called them stricter).
 **Depends on:** FR-2 · **Overview:** `docs/specs/FR-0-overview.md`
 
 > **Deploy model DECIDED by user 2026-11-09.** Data is published to a dedicated `data`
@@ -13,30 +13,53 @@
 The data must refresh every night and follow the semester change with no human action, and without a production deploy (CLAUDE.md: production changes go only through `scripts/deploy/`, run by a human). The maintainer must also hear about problems that need a human, such as a missing academic calendar. And they need one place that explains how all of this works.
 
 ## Solution
-- **`.github/workflows/nightly-data.yml`:** pulls the current data from the `data` branch, runs `npm run fetch-data`, and commits `schedule.json` to the `data` branch when FR-2 rewrote it. It opens or updates one GitHub issue when calendar warnings are present. It has no deploy step and never pushes to `main`.
+- **`.github/workflows/nightly-data.yml`:** three jobs with per-job least privilege.
+  - `fetch` runs `npm run fetch-data` against the current `data` branch file.
+  - `publish` commits `schedule.json` to the `data` branch when FR-2 rewrote it.
+  - `calendar-issue` opens, updates or closes one GitHub issue for calendar warnings.
+  - There's no deploy step, and nothing ever pushes to `main`.
 - **`README.md`:** covers what FreeRooms is, local dev, the nightly update, the semester switch, the yearly calendar chore, and production.
 
 ### Workflow
 - Triggers: `schedule: cron "0 8 * * *"` (03:00 EST / 04:00 EDT) and `workflow_dispatch`.
-- `workflow_dispatch` takes an input `publish` (boolean, default `true`). Scheduled runs always publish. When `publish` is `false`, the run does everything except write to GitHub:
-  - it skips the push to `data`
-  - it skips the issue step, and instead prints the calendar warnings and the issue body it would have written.
-  - Test runs therefore never change production data.
-- `permissions: { contents: write, issues: write }` only. `concurrency: nightly-data` with `cancel-in-progress: false`.
-- Steps:
-  1. Check out the **triggering ref** (`actions/checkout` default: `main` for the schedule, the chosen branch for `workflow_dispatch`). Set up `actions/setup-node` with `node-version-file: .nvmrc` and npm cache. Run `npm ci`.
-  2. **Seed:** if `origin/data` exists, `git fetch origin data` and `git show origin/data:schedule.json > public/data/schedule.json`. This gives FR-2 the existing file for its guards and write rule. If the branch doesn't exist yet, skip (first run).
-  3. `npm run fetch-data`.
-  4. **Publish** (skipped when `publish` is `false`): if `public/data/schedule.json` differs from the seeded copy, or the `data` branch is missing:
-     - check out the `data` branch into a separate worktree (create it as an orphan branch if missing)
-     - copy the file to `schedule.json` at the branch root
-     - commit as `github-actions[bot]` with the message `data: nightly schedule update (YYYY-MM-DD)`, where the date is `TZ=America/New_York date +%F`
-     - `git push origin data`. If the push is rejected: `git pull --rebase origin data`, then push once more. If that also fails, the job fails.
-  5. **Calendar issue** (when `publish` is `false`: print only, as described above): read the calendar warnings with `jq '[.warnings[] | select(contains("has no academic calendar file"))]' public/data/schedule.json`.
-     - If there are any, find the open issue with label `calendar-missing` (create the label if missing, using `gh label create --force`). Update its body with the current warnings, or open one titled `Academic calendar file missing` if none is open.
-     - If there are none and such an issue is open, close it with the comment `Calendar warnings cleared by run <run URL>.`
-     - Use `gh` with `GITHUB_TOKEN`.
+- `workflow_dispatch` takes an input `publish` (boolean, default `true`). Scheduled runs always publish.
+- Top-level `permissions: {}`. `concurrency: nightly-data` with `cancel-in-progress: false`.
+- **Write guard:** `publish` and `calendar-issue` run only if `github.ref == 'refs/heads/main'` **and** `publish` is true (or unset, for the schedule). A dispatch from a feature branch, or with `publish: false`, can never write production data or touch issues.
 - No secrets or env vars other than `GITHUB_TOKEN`.
+
+**Job `fetch`:**
+- `permissions: { contents: read }`
+- It's the only job that runs npm code.
+- Steps:
+  1. `actions/checkout` of the triggering ref with `persist-credentials: false`. Set up `actions/setup-node` with `node-version-file: .nvmrc` and npm cache. Run `npm ci`.
+  2. **Seed:** if `git ls-remote --exit-code origin data` finds the branch, check out `ref: data` into a separate path (`persist-credentials: false`) and copy its `schedule.json` to `public/data/schedule.json`. Otherwise skip (first run).
+  3. `npm run fetch-data`.
+  4. Set the job output `changed` to `true` when `public/data/schedule.json` differs from the seeded copy or no seed existed, and `false` otherwise.
+  5. Print the calendar warnings (`jq '[.warnings[] | select(contains("has no academic calendar file"))]'`) and the issue body that `calendar-issue` would write. This gives dry runs their evidence.
+  6. Upload `public/data/schedule.json` as the artifact `schedule-json`.
+
+**Job `publish`:**
+- `needs: fetch`, `permissions: { contents: write }`
+- It runs no npm code: no `npm`, `npx` or `node` scripts from the repo.
+- Runs only under the write guard and when `needs.fetch.outputs.changed == 'true'`.
+- Steps:
+  1. Download `schedule-json`.
+  2. Check out the `data` branch, or create it as an orphan if it's missing.
+  3. Copy the file to `schedule.json` at the branch root.
+  4. Commit as `github-actions[bot]` with the message `data: nightly schedule update (YYYY-MM-DD)`, where the date is `TZ=America/New_York date +%F`.
+  5. `git push origin data`. If the push is rejected: `git pull --rebase origin data`, then push once more. If that also fails, the job fails.
+
+**Job `calendar-issue`:**
+- `needs: fetch`, `permissions: { issues: write }`
+- It runs no npm code and only runs under the write guard.
+- Steps:
+  1. Download `schedule-json` and read the calendar warnings with the `jq` filter above.
+  2. If there are any, find the open issue with label `calendar-missing` (create the label if missing, using `gh label create --force`). Update its body, or open one titled `Academic calendar file missing` if none is open.
+  3. If there are none and such an issue is open, close it with the comment `Calendar warnings cleared by run <run URL>.`
+  4. Use `gh` with `GITHUB_TOKEN`.
+- **Accepted side effect:** `calendar-issue` runs alongside `publish`, not after it. So the issue can be updated even when the `data` push fails. That's fine: the warnings come from a successful fetch either way.
+
+Together the three jobs grant exactly what the earlier single job did (`contents: write` + `issues: write`), split so each job holds only what it needs.
 
 ### README sections (required headings)
 1. **What it is:** the data source (public Banner class search, classes only).
@@ -45,11 +68,12 @@ The data must refresh every night and follow the semester change with no human a
    - Without a local fetch, set `NEXT_PUBLIC_DATA_URL` to the `data` branch raw URL in `.env.local`.
 3. **Nightly update:**
    - when it runs
+   - the three jobs and their permissions
    - the `data` branch and the runtime URL
    - the write rule (real changes, plus a 48 h heartbeat)
    - why a failure leaves yesterday's data in place
    - the 3-day stale banner
-   - how to run it manually (Actions → nightly-data → Run workflow)
+   - how to run it manually (Actions → nightly-data → Run workflow; only from `main` publishes)
    - **how to re-enable the workflow if GitHub disabled it after 60 days without activity** (Actions → nightly-data → "Enable workflow").
 4. **Semester switch:** terms are discovered automatically (any term not marked "View Only", plus current terms from the existing file, with meeting dates overlapping today to +120 days). CPS and Law are inside the semester terms via `partOfTerm`. No code change is needed. Covers the "room assignments incomplete" banner.
 5. **Yearly chore:** add `data/calendar/<YYYY-YYYY>.json` from the registrar PDF (link the FR-6 format). The `calendar-missing` issue opens automatically when it's needed and closes when it's fixed.
@@ -58,34 +82,47 @@ The data must refresh every night and follow the semester change with no human a
    - Data refreshes don't need a deploy.
    - A human sets `NEXT_PUBLIC_DATA_URL=https://raw.githubusercontent.com/nwhee/FreeRooms/data/schedule.json` in Vercel once. The repo must stay public.
    - **The value is inlined at build time.** After setting or changing it, the human must redeploy through `scripts/deploy/deploy.sh` (FR-7) for it to take effect. A build without it prints a loud `WARNING: NEXT_PUBLIC_DATA_URL is not set`.
-   - Test the workflow with `workflow_dispatch` and `publish: false`.
+   - Test the workflow with `workflow_dispatch` and `publish: false`, or from a non-main branch.
+   - **Before the first push to GitHub:** check Banner's `robots.txt` and Northeastern's acceptable-use policy (see AC6). Merging to `main` starts the nightly schedule.
 7. **Data contract:** link to `docs/specs/FR-0-overview.md`.
 
 ## Acceptance criteria
-- [ ] AC1: The workflow file parses as valid YAML and has exactly the triggers, permissions, concurrency and steps listed above (auditor inspection; `actionlint` passes if available).
+- [ ] AC1 (inspection; `actionlint` passes if available): the workflow file parses as valid YAML and has:
+  - exactly the triggers and the `publish` input above
+  - top-level `permissions: {}` and the `concurrency` block
+  - exactly three jobs, `fetch`, `publish` and `calendar-issue`, with these permissions:
+    - `fetch`: `contents: read`, with `persist-credentials: false` on every checkout
+    - `publish`: `contents: write`, `needs: fetch`
+    - `calendar-issue`: `issues: write`, `needs: fetch`
+  - no other permission anywhere
+  - `npm` appears only in `fetch` (`npm`, `npx` and repo `node` scripts don't appear in `publish` or `calendar-issue`)
+  - `fetch` uploads the `schedule-json` artifact, and the other two download it.
 - [ ] AC2: These checks all print nothing:
   - `grep -nE "vercel|--prod" .github/workflows/nightly-data.yml`
   - `grep -n "secrets\." .github/workflows/nightly-data.yml | grep -v GITHUB_TOKEN`
   - `grep -nE "push( origin)? (main|HEAD:main)" .github/workflows/nightly-data.yml`
-- [ ] AC3: The publish step commits only `schedule.json` on the `data` branch, and runs only when the file changed or the branch is missing. When fetch prints `No change; not writing.`, the job ends green with no commit.
-- [ ] AC4: If `npm run fetch-data` exits 1, the job fails (red), no commit is made, and the calendar-issue step doesn't run. There's no `continue-on-error` and no `|| true` on that step.
+- [ ] AC3: `publish` commits only `schedule.json` on the `data` branch, and runs only when `needs.fetch.outputs.changed == 'true'`. When fetch prints `No change; not writing.`, the run ends green with `publish` skipped and no commit.
+- [ ] AC4: If `npm run fetch-data` exits 1, `fetch` fails (red), and `publish` and `calendar-issue` don't run. There's no `continue-on-error` and no `|| true` on that step.
 - [ ] AC5: The push step contains `git pull --rebase origin data` followed by exactly one retry push. The commit message date is computed with `TZ=America/New_York`.
-- [ ] AC6 (manual, done by the user after merge, since this needs GitHub):
-  - A `workflow_dispatch` run on `main` with `publish: true` (this is the bootstrap, started by the human), on a repo with no `data` branch, finishes green and creates `data` with exactly one file, `schedule.json`.
+- [ ] AC6 (manual, done by the user, since this needs GitHub):
+  - **Prerequisite, before the first push of this workflow to GitHub:** the maintainer checks `https://nubanner.neu.edu/robots.txt` and Northeastern's acceptable-use policy (Policy 700 and any IT acceptable-use policy). They record the result in `docs/qa/FR-3/` (what was checked, the date, and the conclusion). If either forbids the nightly fetch, stop and raise it with the user.
+  - Then: a `workflow_dispatch` run on `main` with `publish: true` (the bootstrap, started by the human), on a repo with no `data` branch, finishes green and creates `data` with exactly one file, `schedule.json`.
   - `curl -s https://raw.githubusercontent.com/nwhee/FreeRooms/data/schedule.json | jq .schemaVersion` prints `1`.
   - `main` has no new commits.
-- [ ] AC7a (inspection): the publish step and the issue step are both guarded by `inputs.publish` (true or unset for schedule runs). `grep -n "publish" .github/workflows/nightly-data.yml` shows the input with `type: boolean` and `default: true`, and the `if:` conditions on both steps.
-- [ ] AC7b (manual): on a test branch, temporarily rename `data/calendar/2026-2027.json` and dispatch there with **`publish: false`**. Then:
-  - The job is green, and the log shows the calendar warnings for 202710 and 202730, plus the issue body it would have written.
-  - `git ls-remote origin data` shows the same commit SHA as before the run.
+- [ ] AC7a (inspection): both `publish` and `calendar-issue` have an `if:` requiring `github.ref == 'refs/heads/main'` **and** the `publish` input being true or unset. `grep -n "publish" .github/workflows/nightly-data.yml` shows the input with `type: boolean` and `default: true`. `grep -n "refs/heads/main" .github/workflows/nightly-data.yml` shows the guard on both jobs.
+- [ ] AC7b (manual): on a test branch, temporarily rename `data/calendar/2026-2027.json` and dispatch there with `publish: false`. Then:
+  - The run is green, `publish` and `calendar-issue` show as skipped, and the `fetch` log shows the calendar warnings for 202710 and 202730 plus the issue body it would have written.
+  - `git ls-remote origin data` shows the same SHA as before the run.
   - No `calendar-missing` issue was created or changed.
-  - (The real open, update and close behaviour is exercised by the first scheduled run after a calendar actually goes missing. The issue-step logic is kept small and reviewed by inspection.)
-- [ ] AC8: `README.md` contains all seven headings above. Its commands match the `package.json` script names, and it includes the re-enable-workflow instruction.
+  - A second dispatch from the same test branch with `publish: true` also skips both jobs, because of the ref guard.
+  - (The real open, update and close behaviour is exercised by the first scheduled run after a calendar actually goes missing. The issue-job logic is kept small and reviewed by inspection.)
+- [ ] AC8: `README.md` contains all seven headings above. Its commands match the `package.json` script names, and it includes the re-enable-workflow instruction and the pre-push robots.txt and policy check.
 - [ ] AC9: `npm run check` passes.
 
 ## Edge cases
 - Two runs overlap → the concurrency group queues the second.
-- The first run ever has no `data` branch → seed skipped, the FR-2 guards that compare against the old file are skipped, and an orphan `data` branch is created.
+- The first run ever has no `data` branch → seed skipped, the FR-2 guards that compare against the old file are skipped, `changed=true`, and `publish` creates an orphan `data` branch.
+- The `data` push fails, but `calendar-issue` has already updated the issue → accepted (see above). The run is red because of `publish`.
 - Pushes made with `GITHUB_TOKEN` don't trigger other workflows. This is expected.
 
 ## Out of scope
