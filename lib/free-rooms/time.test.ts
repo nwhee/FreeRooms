@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { formatMinutes, isStale, localNow, weekdayBit } from "./time";
 
+/** IANA tzdata version of this runtime, e.g. "2026c". Versions compare as text (YYYY + letter). */
+const tzdata: string | undefined = process.versions.tz;
+const hasBcPermanentDst = tzdata !== undefined && tzdata >= "2026c";
+
 describe("localNow (AC11: timezones and DST)", () => {
   it.each([
     ["America/New_York", "2026-11-18", 600],
@@ -11,16 +15,19 @@ describe("localNow (AC11: timezones and DST)", () => {
     expect(localNow(zone, new Date("2026-11-18T15:00:00Z"))).toEqual({ date, minutes, weekday: 3 });
   });
 
-  // FR-4 AC11 expects 420 here (UTC-8). IANA tzdata 2026c puts British Columbia on
-  // permanent UTC-7 from March 2026 (no fall-back on 2026-11-01), so the correct local
-  // time is 08:00 = 480. Raised with the spec owner; see the FR-4 hand-off report.
-  it("follows IANA tzdata for America/Vancouver (permanent UTC-7 from 2026)", () => {
-    expect(localNow("America/Vancouver", new Date("2026-11-18T15:00:00Z"))).toEqual({
-      date: "2026-11-18",
-      minutes: 480,
-      weekday: 3,
-    });
-  });
+  // FR-0 "Timezone data": under tzdata 2026c+ Vancouver is permanent UTC-7, so 15:00Z is 480.
+  it.skipIf(!hasBcPermanentDst)(
+    hasBcPermanentDst
+      ? "reads 2026-11-18T15:00:00Z in America/Vancouver as 2026-11-18 minute 480"
+      : `America/Vancouver 480 skipped: runtime tzdata ${tzdata ?? "unknown"} is older than 2026c`,
+    () => {
+      expect(localNow("America/Vancouver", new Date("2026-11-18T15:00:00Z"))).toEqual({
+        date: "2026-11-18",
+        minutes: 480,
+        weekday: 3,
+      });
+    },
+  );
 
   it.each([
     ["America/New_York", 660],
@@ -85,6 +92,10 @@ describe("isStale (AC12)", () => {
 
   it("throws a RangeError for an unparseable generatedAt", () => {
     expect(() => isStale("yesterday", new Date())).toThrow(RangeError);
+  });
+
+  it("throws a RangeError for an invalid now", () => {
+    expect(() => isStale(generatedAt, new Date("nope"))).toThrow(RangeError);
   });
 });
 

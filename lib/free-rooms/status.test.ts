@@ -25,8 +25,12 @@ describe("AC1 basic busy and free, end exclusive", () => {
     expect(statusAt(mwf, WED, minutes)).toEqual(busy(695));
   });
 
-  it.each([695, 629])("is free at %i", (minutes) => {
-    expect(statusAt(mwf, WED, minutes).free).toBe(true);
+  it("is free at 629 until 630", () => {
+    expect(statusAt(mwf, WED, 629)).toEqual(free(630));
+  });
+
+  it("is free at 695 for the rest of the day", () => {
+    expect(statusAt(mwf, WED, 695)).toEqual(free(null));
   });
 });
 
@@ -92,7 +96,8 @@ describe("AC5 several terms and parts of term", () => {
   const MON = "2026-11-02";
 
   it("does not count a 2A meeting ending 2026-10-25 on 2026-11-02", () => {
-    expect(statusAt([part2A], MON, 640).free).toBe(true);
+    expect(statusAt([part2A], MON, 640)).toEqual(free(null));
+    expect(statusAt([part2A], MON, 0)).toEqual(free(null));
   });
 
   it("counts a 2B meeting starting 2026-11-02 on that date", () => {

@@ -70,6 +70,7 @@ export function localNow(timezone: string, instant: Date): LocalNow {
 
 /** FR-0 "Stale": more than 72 hours between `generatedAt` and the viewer's `now`. */
 export function isStale(generatedAt: string, now: Date): boolean {
+  if (Number.isNaN(now.getTime())) throw new RangeError("Expected a valid Date for now");
   const generated = Date.parse(generatedAt);
   if (Number.isNaN(generated)) {
     throw new RangeError(`Expected an ISO 8601 timestamp, got ${JSON.stringify(generatedAt)}`);

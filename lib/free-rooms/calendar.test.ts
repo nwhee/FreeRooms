@@ -11,6 +11,14 @@ describe("AC6 dayContext no-class date by campus", () => {
     expect(dayContext(index, "TOR", "2026-11-11").noClass).toBeNull();
   });
 
+  it("returns the first entry in file order when no-class entries overlap", () => {
+    const extra = { start: "2026-11-10", end: "2026-11-12", label: "Later entry", campuses: ["BOS"] };
+    const overlapping = buildIndex(
+      makeSchedule({ calendar: { ...CALENDAR, noClassDates: [...CALENDAR.noClassDates, extra] } }),
+    );
+    expect(dayContext(overlapping, "BOS", "2026-11-11").noClass?.label).toBe("Veterans Day / Remembrance Day");
+  });
+
   it("returns null on an ordinary day", () => {
     expect(dayContext(index, "BOS", "2026-11-18").noClass).toBeNull();
   });

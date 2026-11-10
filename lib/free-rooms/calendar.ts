@@ -28,7 +28,11 @@ export function covers(range: { start: string; end: string }, date: string): boo
   return range.start <= date && date <= range.end;
 }
 
-/** The calendar facts for one campus-local date (FR-0 "Definitions"). */
+/**
+ * The calendar facts for one campus-local date (FR-0 "Definitions").
+ * When several no-class entries cover the date for the campus, the first in
+ * file order is returned as `noClass` (and so supplies the label).
+ */
 export function dayContext(index: ScheduleIndex, campus: string, date: string): DayContext {
   assertIsoDate(date);
   const { calendar, terms: allTerms } = index.data;
