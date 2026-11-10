@@ -13,9 +13,16 @@ const fixture = fixtureJson as ScheduleFile;
 const GENERATED_AT = Date.parse(fixture.generatedAt);
 const HOUR = 60 * 60 * 1000;
 
-/** Clock at `iso`. Only Date and setInterval are faked, so Testing Library's waits still run. */
+/**
+ * Clock at `iso`. Timers are faked so the Now-mode tick only fires on
+ * `advanceTimersByTime`; `shouldAdvanceTime` lets Testing Library's waits run.
+ */
 function setClock(iso: string | number) {
-  vi.useFakeTimers({ now: new Date(iso), toFake: ["Date", "setInterval", "clearInterval"] });
+  vi.useFakeTimers({
+    now: new Date(iso),
+    toFake: ["Date", "setTimeout", "clearTimeout", "setInterval", "clearInterval"],
+    shouldAdvanceTime: true,
+  });
 }
 
 function stubFetch(...bodies: unknown[]) {
@@ -169,9 +176,13 @@ describe("AC5: leaving and returning to Now mode", () => {
     act(() => vi.advanceTimersByTime(60_000));
     expect(timeInput()).toHaveValue("14:00");
 
+    expect(screen.getByText("Showing a chosen time")).toBeInTheDocument();
+
     await userEvent.click(screen.getByRole("button", { name: "Now" }));
     expect(timeInput()).toHaveValue("10:01");
     expect(screen.getByRole("button", { name: "Now" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Live")).toBeInTheDocument();
+    expect(screen.queryByText("Showing a chosen time")).not.toBeInTheDocument();
 
     act(() => vi.advanceTimersByTime(60_000));
     expect(timeInput()).toHaveValue("10:02");
@@ -312,10 +323,11 @@ describe("AC11: banners", () => {
 
   it("exam: final and Law exam periods use the data labels", async () => {
     await renderApp();
-    setDate("2026-12-15");
-    expect(statusTexts()).toContain(
+    setDate("2026-12-15"); // inside both windows: the full banner set, in data order
+    expect(statusTexts()).toEqual([
+      "Fall Law exam period: exams aren't in this data, so free rooms may be in use.",
       "Fall final exam period: exams aren't in this data, so free rooms may be in use.",
-    );
+    ]);
     setDate("2026-12-08");
     expect(statusTexts()).toEqual([
       "Fall Law exam period: exams aren't in this data, so free rooms may be in use.",
@@ -359,6 +371,7 @@ describe("AC13: no free rooms", () => {
     await renderApp();
     await userEvent.click(screen.getByRole("tab", { name: "Toronto" }));
     expect(screen.getByText("No free rooms at this time.")).toBeInTheDocument();
+    expect(screen.getByText("Turn on Show rooms in use to see when rooms free up.")).toBeInTheDocument();
     expect(screen.queryAllByRole("region")).toHaveLength(0);
     expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
   });
@@ -383,12 +396,25 @@ describe("AC13b: roles", () => {
       ]),
     );
     expect(screen.queryByRole("alert")).toBeNull();
+    // The Now/time-travel cue is plain text, not another live region.
+    expect(statuses.some((s) => s.textContent === "Live")).toBe(false);
+  });
+
+  it("banners carry an icon and a tone: warning for stale, info for exam", async () => {
+    setClock(Date.parse("2026-12-15T15:00:00Z"));
+    await renderApp();
+    const [staleBanner, lawBanner] = screen.getAllByRole("status");
+    expect(staleBanner).toHaveAttribute("data-tone", "warning");
+    expect(staleBanner.querySelector("svg.lucide-triangle-alert")).not.toBeNull();
+    expect(lawBanner).toHaveAttribute("data-tone", "info");
+    expect(lawBanner.querySelector("svg.lucide-info")).not.toBeNull();
   });
 
   it("the load error is an alert", async () => {
     stubFetch(new TypeError("Failed to fetch"));
     render(<FreeRoomsApp />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load room data");
+    expect(screen.getByRole("heading", { level: 1, name: "FreeRooms" })).toBeInTheDocument();
   });
 
   it("no file in components/free-rooms defines its own cn", () => {

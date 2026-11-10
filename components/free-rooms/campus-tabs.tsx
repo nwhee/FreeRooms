@@ -27,7 +27,7 @@ export function CampusTabs({ campuses, value, onValueChange, children }: Props) 
         ))}
       </TabsList>
       {campuses.map((campus) => (
-        <TabsContent key={campus.code} value={campus.code} className="flex flex-col gap-6">
+        <TabsContent key={campus.code} value={campus.code} className="flex flex-col gap-6 focus-visible:ring-offset-4 focus-visible:ring-offset-background">
           {campus.code === value && children(campus)}
         </TabsContent>
       ))}

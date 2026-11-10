@@ -8,7 +8,7 @@ import type { Campus } from "@/lib/data/schema";
 import { localNow, roomStatusesAt, type ScheduleIndex } from "@/lib/free-rooms";
 import { BuildingGroup } from "./building-group";
 import { CampusTabs } from "./campus-tabs";
-import { DataHeader } from "./data-header";
+import { AppTitle, DataHeader } from "./data-header";
 import { groupByBuilding, matchesQuery, type RoomResult } from "./results";
 import { RoomSearch } from "./room-search";
 import { StatusBanners } from "./status-banners";
@@ -54,12 +54,15 @@ function LoadingState() {
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <Alert variant="destructive" role="alert" className="flex flex-col items-start gap-3 px-4 py-3">
-      <AlertDescription className="text-destructive">Couldn&apos;t load room data. Try again later.</AlertDescription>
-      <Button type="button" variant="outline" className="h-11 px-4" onClick={onRetry}>
-        Retry
-      </Button>
-    </Alert>
+    <>
+      <AppTitle />
+      <Alert variant="destructive" role="alert" className="flex flex-col items-start gap-3 px-4 py-3">
+        <AlertDescription className="text-destructive">Couldn&apos;t load room data. Try again later.</AlertDescription>
+        <Button type="button" variant="outline" className="h-11 px-4" onClick={onRetry}>
+          Retry
+        </Button>
+      </Alert>
+    </>
   );
 }
 
@@ -141,7 +144,12 @@ function CampusResults({ index, campus, date, minutes, query, showBusy }: Result
     return <p className="text-foreground">No rooms match &quot;{trimmed}&quot;.</p>;
   }
   if (groups.length === 0) {
-    return <p className="text-foreground">No free rooms at this time.</p>;
+    return (
+      <div className="flex flex-col gap-1 text-foreground">
+        <p>No free rooms at this time.</p>
+        <p className="text-sm">Turn on Show rooms in use to see when rooms free up.</p>
+      </div>
+    );
   }
   return (
     <div className="flex flex-col gap-6">

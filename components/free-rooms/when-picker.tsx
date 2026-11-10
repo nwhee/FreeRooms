@@ -20,43 +20,49 @@ export function WhenPicker({ campusName, date, minutes, isNow, onDateChange, onT
   const dateId = useId();
   const timeId = useId();
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="flex min-w-36 flex-1 flex-col gap-2">
-        <Label htmlFor={dateId}>Date ({campusName} time)</Label>
-        <Input
-          id={dateId}
-          type="date"
-          className="h-11"
-          value={date}
-          onChange={(event) => {
-            const value = parseDateValue(event.target.value);
-            if (value !== null) onDateChange(value);
-          }}
-        />
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Label htmlFor={dateId}>Date ({campusName} time)</Label>
+          <Input
+            id={dateId}
+            type="date"
+            className="h-11"
+            value={date}
+            onChange={(event) => {
+              const value = parseDateValue(event.target.value);
+              if (value !== null) onDateChange(value);
+            }}
+          />
+        </div>
+        <div className="flex min-w-0 flex-col gap-2">
+          <Label htmlFor={timeId}>Time ({campusName} time)</Label>
+          <Input
+            id={timeId}
+            type="time"
+            step={300}
+            className="h-11"
+            value={toTimeValue(minutes)}
+            onChange={(event) => {
+              const value = parseTimeValue(event.target.value);
+              if (value !== null) onTimeChange(value);
+            }}
+          />
+        </div>
       </div>
-      <div className="flex min-w-28 flex-1 flex-col gap-2">
-        <Label htmlFor={timeId}>Time ({campusName} time)</Label>
-        <Input
-          id={timeId}
-          type="time"
-          step={300}
-          className="h-11"
-          value={toTimeValue(minutes)}
-          onChange={(event) => {
-            const value = parseTimeValue(event.target.value);
-            if (value !== null) onTimeChange(value);
-          }}
-        />
+      <div className="flex items-center gap-3">
+        <Button
+          type="button"
+          variant={isNow ? "default" : "outline"}
+          className="h-11 px-4"
+          aria-pressed={isNow}
+          onClick={onNow}
+        >
+          Now
+        </Button>
+        {/* A plain text cue, deliberately not a live region. */}
+        <p className="text-sm text-foreground">{isNow ? "Live" : "Showing a chosen time"}</p>
       </div>
-      <Button
-        type="button"
-        variant={isNow ? "default" : "outline"}
-        className="h-11 px-4"
-        aria-pressed={isNow}
-        onClick={onNow}
-      >
-        Now
-      </Button>
     </div>
   );
 }
