@@ -171,6 +171,7 @@ function duplicateErrors<T>(items: readonly T[], list: string, field: string, ke
 /** The FR-0 invariants that compare fields or entities. Assumes a successful parse. */
 function checkInvariants(data: ScheduleFile): string[] {
   const errors: string[] = [
+    ...duplicateErrors(data.terms, "terms", "code", (term) => term.code),
     ...duplicateErrors(data.campuses, "campuses", "code", (campus) => campus.code),
     ...duplicateErrors(data.buildings, "buildings", "code", (building) => building.code),
     ...duplicateErrors(data.rooms, "rooms", "id", (room) => room.id),

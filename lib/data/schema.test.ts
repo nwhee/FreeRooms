@@ -180,6 +180,12 @@ describe("validateSchedule (FR-1 AC7)", () => {
     expect(validateSchedule(data).ok).toBe(true);
   });
 
+  it("reports a duplicate term code", () => {
+    const data = fixture();
+    data.terms.push({ ...structuredClone(data.terms[0]), description: "Fall 2026 again" });
+    expect(errorsFor(data)).toEqual(['terms[1].code: duplicate "202710" (first at terms[0])']);
+  });
+
   it("reports a duplicate campus code", () => {
     const data = fixture();
     data.campuses[1].code = "BOS";

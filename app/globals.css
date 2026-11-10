@@ -49,7 +49,9 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* v1 is light-only (FR-1 AC11). */
 :root {
+  color-scheme: light;
   /*
    * Non-text contrast, WCAG 2.2 AA 1.4.11 (needs >= 3:1):
    *   --input        oklch(0.62)  vs --background white   3.64:1  (input border)
