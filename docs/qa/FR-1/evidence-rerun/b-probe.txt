@@ -1,0 +1,39 @@
+OK   valid fixture                       
+OK   duplicate term code                 
+ERR  duplicate campus code               ["campuses[2].code: duplicate \"BOS\" (first at campuses[0])","campuses[2].buildingCount: is 1 but 2 buildings have campus \"BOS\"","campuses[2].roomCount: is 1 but 3 rooms have campus \"BOS\""]
+ERR  duplicate building code             ["buildings[3].code: duplicate \"DK\" (first at buildings[0])","campuses[0].buildingCount: is 2 but 3 buildings have campus \"BOS\""]
+ERR  duplicate room id                   ["rooms[4].id: duplicate \"DK-240\" (first at rooms[0])","campuses[0].roomCount: is 3 but 4 rooms have campus \"BOS\"","buildings[0].roomCount: is 1 but 2 rooms have building \"DK\""]
+ERR  room.campus != building campus      ["rooms[0].campus: is \"LDN\" but building \"DK\" is in campus \"BOS\""]
+ERR  meeting.termCode unknown            ["meetings[0].termCode: unknown term \"999999\""]
+ERR  unknown key top                     ["Unrecognized key: \"extra\""]
+ERR  unknown key term                    ["terms[0]: Unrecognized key: \"x\""]
+ERR  unknown key partOfTerm              ["terms[0].partsOfTerm[0]: Unrecognized key: \"x\""]
+ERR  unknown key campus                  ["campuses[0]: Unrecognized key: \"x\""]
+ERR  unknown key building                ["buildings[0]: Unrecognized key: \"x\""]
+ERR  unknown key room                    ["rooms[0]: Unrecognized key: \"x\""]
+ERR  unknown key meeting                 ["meetings[0]: Unrecognized key: \"x\""]
+ERR  unknown key calendar                ["calendar: Unrecognized key: \"x\""]
+ERR  unknown key noClassDate             ["calendar.noClassDates[0]: Unrecognized key: \"x\""]
+ERR  unknown key examPeriod              ["calendar.examPeriods[0]: Unrecognized key: \"x\""]
+ERR  campus with no rooms                ["campuses[2]: campus \"NYC\" has no rooms"]
+ERR  unknown roomId                      ["meetings[0].roomId: unknown room \"XX-1\""]
+ERR  days 0                              ["meetings[0].days: must be an integer from 1 to 127"]
+ERR  days 128                            ["meetings[0].days: must be an integer from 1 to 127"]
+ERR  start>=end                          ["meetings[0]: start 700 is not before end 700"]
+ERR  end 1441                            ["meetings[0].end: must be an integer from 1 to 1440"]
+ERR  startDate>endDate                   ["meetings[0]: startDate 2026-12-05 is after endDate 2026-12-04"]
+ERR  bad date                            ["meetings[0].startDate: must be a date in YYYY-MM-DD format, got \"2026-02-30\""]
+ERR  invalid tz                          ["campuses[0].timezone: \"Mars/Olympus\" is not a time zone accepted by Intl.DateTimeFormat"]
+ERR  roomed>meetingCount                 ["terms[0].roomedMeetingCount: 6 exceeds meetingCount 5"]
+ERR  empty exam parts                    ["calendar.examPeriods[0].partsOfTerm: must not be empty"]
+ERR  wrong roomCount                     ["buildings[0].roomCount: is 9 but 1 rooms have building \"DK\""]
+ERR  unknown campus                      ["campuses[0].buildingCount: is 2 but 1 buildings have campus \"BOS\"","buildings[0].campus: unknown campus \"QQQ\"","rooms[0].campus: is \"BOS\" but building \"DK\" is in campus \"QQQ\""]
+ERR  unknown building                    ["buildings[0].roomCount: is 1 but 0 rooms have building \"DK\"","rooms[0].building: unknown building \"ZZ\""]
+input null false
+input "x" false
+input [] false
+input {} false
+PORTLAND, MAINE PTL
+Online null
+No campus, no room needed null
+Mars null
