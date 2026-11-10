@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-18T07:00:00.000Z",
+  "terms": [
+    {
+      "code": "202710",
+      "description": "Fall 2026 Semester",
+      "startDate": "2026-09-02",
+      "endDate": "2026-12-20",
+      "partsOfTerm": [
+        { "code": "1", "startDate": "2026-09-09", "endDate": "2026-12-20" },
+        { "code": "1L", "startDate": "2026-09-02", "endDate": "2026-12-04" }
+      ],
+      "meetingCount": 1000,
+      "roomedMeetingCount": 950
+    },
+    {
+      "code": "202730",
+      "description": "Spring 2027 Semester",
+      "startDate": "2027-01-13",
+      "endDate": "2027-05-02",
+      "partsOfTerm": [{ "code": "1", "startDate": "2027-01-13", "endDate": "2027-05-02" }],
+      "meetingCount": 1000,
+      "roomedMeetingCount": 300
+    }
+  ],
+  "campuses": [
+    { "code": "BOS", "name": "Boston", "timezone": "America/New_York", "buildingCount": 3, "roomCount": 6 },
+    { "code": "LDN", "name": "London", "timezone": "Europe/London", "buildingCount": 1, "roomCount": 2 },
+    { "code": "TOR", "name": "Toronto", "timezone": "America/Toronto", "buildingCount": 1, "roomCount": 1 }
+  ],
+  "buildings": [
+    { "code": "DK", "name": "Dockser Hall", "campus": "BOS", "roomCount": 1 },
+    { "code": "LDN-DH", "name": "Devon House", "campus": "LDN", "roomCount": 2 },
+    { "code": "RI", "name": "Richards Hall", "campus": "BOS", "roomCount": 1 },
+    { "code": "SL", "name": "Snell Library", "campus": "BOS", "roomCount": 4 },
+    { "code": "TOR", "name": "Toronto Campus Building", "campus": "TOR", "roomCount": 1 }
+  ],
+  "rooms": [
+    { "id": "DK-240", "campus": "BOS", "building": "DK", "room": "240", "displayName": "Dockser Hall 240" },
+    { "id": "LDN-DH-1.01", "campus": "LDN", "building": "LDN-DH", "room": "1.01", "displayName": "Devon House 1.01" },
+    { "id": "LDN-DH-1.02", "campus": "LDN", "building": "LDN-DH", "room": "1.02", "displayName": "Devon House 1.02" },
+    { "id": "RI-300", "campus": "BOS", "building": "RI", "room": "300", "displayName": "Richards Hall 300" },
+    { "id": "SL-033", "campus": "BOS", "building": "SL", "room": "033", "displayName": "Snell Library 033" },
+    { "id": "SL-1001", "campus": "BOS", "building": "SL", "room": "1001", "displayName": "Snell Library 1001" },
+    { "id": "SL-101", "campus": "BOS", "building": "SL", "room": "101", "displayName": "Snell Library 101" },
+    { "id": "SL-117", "campus": "BOS", "building": "SL", "room": "117", "displayName": "Snell Library 117" },
+    { "id": "TOR-110", "campus": "TOR", "building": "TOR", "room": "110", "displayName": "Toronto 110" }
+  ],
+  "meetings": [
+    { "roomId": "DK-240", "days": 21, "start": 600, "end": 700, "startDate": "2026-09-09", "endDate": "2026-12-18", "partOfTerm": "1", "termCode": "202710" },
+    { "roomId": "LDN-DH-1.01", "days": 21, "start": 870, "end": 960, "startDate": "2026-09-09", "endDate": "2026-12-18", "partOfTerm": "1", "termCode": "202710" },
+    { "roomId": "RI-300", "days": 10, "start": 600, "end": 700, "startDate": "2026-09-09", "endDate": "2026-12-18", "partOfTerm": "1", "termCode": "202710" },
+    { "roomId": "SL-033", "days": 21, "start": 815, "end": 915, "startDate": "2026-09-09", "endDate": "2026-12-18", "partOfTerm": "1", "termCode": "202710" },
+    { "roomId": "SL-1001", "days": 21, "start": 840, "end": 940, "startDate": "2026-09-09", "endDate": "2026-12-18", "partOfTerm": "1", "termCode": "202710" },
+    { "roomId": "SL-117", "days": 21, "start": 570, "end": 665, "startDate": "2026-09-09", "endDate": "2026-12-18", "partOfTerm": "1", "termCode": "202710" },
+    { "roomId": "SL-117", "days": 21, "start": 600, "end": 700, "startDate": "2027-01-13", "endDate": "2027-04-23", "partOfTerm": "1", "termCode": "202730" },
+    { "roomId": "TOR-110", "days": 21, "start": 540, "end": 1080, "startDate": "2026-09-09", "endDate": "2026-12-18", "partOfTerm": "1", "termCode": "202710" }
+  ],
+  "calendar": {
+    "termYears": ["2027"],
+    "noClassDates": [
+      { "start": "2026-11-11", "end": "2026-11-11", "label": "Veterans Day / Remembrance Day", "campuses": ["BOS", "VAN"] },
+      { "start": "2026-11-25", "end": "2026-11-29", "label": "Fall break", "campuses": ["BOS", "LDN", "TOR"] }
+    ],
+    "examPeriods": [
+      { "start": "2026-12-07", "end": "2026-12-20", "label": "Fall Law exam period", "partsOfTerm": ["1L"] },
+      { "start": "2026-12-14", "end": "2026-12-20", "label": "Fall final exam period", "partsOfTerm": ["1"] }
+    ]
+  },
+  "warnings": []
+}
