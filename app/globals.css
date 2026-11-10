@@ -25,6 +25,7 @@
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
+  --color-switch-track: var(--switch-track);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
@@ -49,6 +50,16 @@
 }
 
 :root {
+  /*
+   * Non-text contrast, WCAG 2.2 AA 1.4.11 (needs >= 3:1):
+   *   --input        oklch(0.62)  vs --background white   3.64:1  (input border)
+   *   --switch-track oklch(0.62)  vs --background white   3.64:1  (switch off; thumb vs track 3.64:1)
+   *   --ring         oklch(0.556) vs white                4.73:1  (focus ring, full opacity)
+   * Dark theme (.dark, vs --background oklch(0.145)):
+   *   --input        oklch(0.52)                          3.59:1
+   *   --switch-track oklch(0.55)                          4.08:1  (thumb vs track 6.33:1)
+   *   --ring         oklch(0.556)                         4.18:1
+   */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -65,8 +76,9 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --input: oklch(0.62 0 0);
+  --switch-track: oklch(0.62 0 0);
+  --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -80,7 +92,7 @@
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
 .dark {
@@ -100,7 +112,8 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --input: oklch(0.52 0 0);
+  --switch-track: oklch(0.55 0 0);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -119,12 +132,23 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
