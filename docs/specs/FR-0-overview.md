@@ -162,6 +162,7 @@ Size budget: about 2–3 MB minified. FR-2 warns if the file is over 5 MB.
 | FR-5 | UI | FR-1, FR-4 | `app/page.tsx`, `components/free-rooms/**` |
 | FR-3 | Nightly workflow + README | FR-2 | `.github/workflows/nightly-data.yml`, `README.md` |
 | FR-7 | Deploy script draft (human installs it) | FR-3 | `docs/deploy-drafts/deploy.sh` |
+| FR-2b | Fetch hardening: placeholder rooms, guard fixes | FR-2 (merged) | `scripts/fetch-data/**`, which passes from FR-2 to FR-2b now that FR-2 is merged. Only one active owner at a time. |
 
 Waves: **1:** FR-1 → **2:** FR-4 and FR-6 in parallel → **3:** FR-2 and FR-5 in parallel → **4:** FR-3 → **5:** FR-7.
 
