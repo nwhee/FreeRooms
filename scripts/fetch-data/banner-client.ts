@@ -32,7 +32,10 @@ export class BannerError extends Error {
   }
 }
 
-const bannerTermSchema = z.object({ code: z.string().min(1), description: z.string() });
+/** Banner term codes are six digits ("202730"); anything else fails the run. */
+const termCodeSchema = z.string().regex(/^\d{6}$/, { error: "must be a 6-digit term code" });
+
+const bannerTermSchema = z.object({ code: termCodeSchema, description: z.string() });
 export const termsPageSchema = z.array(bannerTermSchema);
 
 const meetingTimeSchema = z.object({
@@ -53,7 +56,7 @@ const meetingTimeSchema = z.object({
 });
 
 const sectionSchema = z.object({
-  term: z.string(),
+  term: termCodeSchema,
   courseReferenceNumber: z.string().min(1),
   campusDescription: z.string().nullish(),
   partOfTerm: z.string().nullish(),

@@ -661,20 +661,67 @@ describe("workflow-command escaping (FR-2b security)", () => {
     expect(escapeCommandData("100% done\r\n::error::x")).toBe("100%25 done%0D%0A::error::x");
   });
 
-  it("prints an escaped ::warning:: for a campus name containing \\n::error::x, and stores it unescaped", async () => {
+  it("cleans a campus name containing \\n::error::x, and escapes % in the printed line only", async () => {
     const out = join(tempDir(), "schedule.json");
-    const hostile = "Mars\n::error::x";
     const result = await runMain(["--out", out], {
       terms: [SPRING],
       sections: {
-        "202730": [section({ crn: "1" }), section({ crn: "2", campus: hostile, meetings: [{ building: "MX", room: "1" }] })],
+        "202730": [
+          section({ crn: "1" }),
+          section({ crn: "2", campus: "Mars 100%\n::error::x", meetings: [{ building: "MX", room: "1" }] }),
+        ],
       },
     });
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('::warning::Unknown campus "Mars%0A::error::x" on 1 meeting; skipped.');
+    expect(result.stdout).toContain('::warning::Unknown campus "Mars 100%25 ::error::x" on 1 meeting; skipped.');
     const printedLines = result.stdout.join("\n").split(/\r?\n|\r/);
     expect(printedLines.some((line) => line.startsWith("::error::"))).toBe(false);
-    expect(readOut(out).warnings).toContain(`Unknown campus "${hostile}" on 1 meeting; skipped.`);
+    expect(readOut(out).warnings).toContain('Unknown campus "Mars 100% ::error::x" on 1 meeting; skipped.');
+  });
+
+  /** Every printed line, split on any line break, that starts a workflow command other than our ::warning::. */
+  function foreignCommands(lines: string[]): string[] {
+    return lines
+      .join("\n")
+      .split(/\r\n|\n|\r/)
+      .filter((line) => line.startsWith("::") && !line.startsWith("::warning::"));
+  }
+  const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
+
+  it("lets no Banner string start a workflow command on stdout or stderr, and stores no control characters", async () => {
+    const hostileTerm = { code: "202730", description: "Spring\n::error::x" };
+    const hostileBuilding = [
+      section({ crn: "1", meetings: [{ building: "HB", buildingDescription: "Hall\r\n::add-mask::y", room: "101" }] }),
+    ];
+
+    const out = join(tempDir(), "schedule.json");
+    const ok = await runMain(["--out", out], { terms: [hostileTerm], sections: { "202730": hostileBuilding } });
+    expect(ok.code).toBe(0);
+    expect(foreignCommands([...ok.stdout, ...ok.stderr])).toEqual([]);
+    const written = readOut(out);
+    expect(written.terms[0].description).toBe("Spring ::error::x");
+    expect(written.buildings[0].name).toBe("Hall  ::add-mask::y");
+    expect(written.rooms[0].displayName).toBe("Hall  ::add-mask::y 101");
+    const strings = JSON.stringify(written).match(/"(?:[^"\\]|\\.)*"/g) ?? [];
+    expect(strings.map((s) => JSON.parse(s) as string).filter((s) => CONTROL.test(s))).toEqual([]);
+
+    // The failure path prints the same strings to stderr: a room-drop guard on the hostile term.
+    const existing = schedule([{ ...SPRING, sections: roomedSections("202730", 10) }], "2026-11-01");
+    const { out: guarded } = existingOut(existing);
+    const failed = await runMain(["--out", guarded], { terms: [hostileTerm], sections: { "202730": hostileBuilding } });
+    expect(failed.code).toBe(1);
+    expect(foreignCommands([...failed.stdout, ...failed.stderr])).toEqual([]);
+  });
+});
+
+describe("term code schema (FR-2b security)", () => {
+  it.each([
+    ["getTerms", { terms: [{ code: "2027\n::error::x", description: "Spring" }] }],
+    ["a section", { terms: [SPRING], sections: { "202730": [section({ crn: "1", term: "20273" })] } }],
+  ] as [string, FakeBannerOptions][])("a non-6-digit term code in %s fails the run with a schema error", async (_where, banner) => {
+    const result = await runMain(["--out", join(tempDir(), "schedule.json")], banner);
+    expect(result.code).toBe(1);
+    expect(result.errorText).toMatch(/unexpected response shape at .*: must be a 6-digit term code/);
   });
 });
 

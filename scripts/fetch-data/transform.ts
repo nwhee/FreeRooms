@@ -46,8 +46,18 @@ function normalizeName(name: string): string {
     .trim();
 }
 
+/**
+ * Banner text made safe to store and print: entities decoded, control
+ * characters (newlines included) turned into spaces, then trimmed. Stops a
+ * Banner string from starting its own workflow command line (FR-2b security);
+ * `escapeCommandData` in index.ts is the second layer.
+ */
+export function cleanText(value: string): string {
+  return decodeEntities(value).replace(/\p{Cc}/gu, " ").trim();
+}
+
 export function stripViewOnly(description: string): string {
-  return decodeEntities(description).replace(VIEW_ONLY_SUFFIX, "").trim();
+  return cleanText(description).replace(VIEW_ONLY_SUFFIX, "").trim();
 }
 
 /**
@@ -109,9 +119,10 @@ function dayMask(meetingTime: BannerMeetingTime): number {
   return DAY_BITS.reduce((mask, [day, bit]) => (meetingTime[day] === true ? mask | bit : mask), 0);
 }
 
+/** The cleaned value, or null when it's missing or blank. */
 function nonEmpty(value: string | null | undefined): string | null {
-  const trimmed = value?.trim() ?? "";
-  return trimmed === "" ? null : trimmed;
+  const cleaned = cleanText(value ?? "");
+  return cleaned === "" ? null : cleaned;
 }
 
 function meetingTimes(section: BannerSection): BannerMeetingTime[] {
@@ -203,7 +214,7 @@ export function transformTerms(
     let roomedMeetingCount = 0;
     let unusable = 0;
     for (const section of sections) {
-      const campusName = decodeEntities(section.campusDescription ?? "").trim();
+      const campusName = cleanText(section.campusDescription ?? "");
       const campus = campusFromBannerName(campusName);
       const partOfTerm = nonEmpty(section.partOfTerm) ?? DEFAULT_PART_OF_TERM;
       for (const meetingTime of meetingTimes(section)) {
@@ -245,7 +256,7 @@ export function transformTerms(
           partOfTerm,
           termCode: fetchedTerm.code,
           building,
-          buildingName: buildingName === null ? null : decodeEntities(buildingName),
+          buildingName,
           room,
           campus: campus.code,
         });
