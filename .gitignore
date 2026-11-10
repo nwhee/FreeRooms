@@ -24,6 +24,7 @@ public/data/schedule.json
 .DS_Store
 playwright-report/
 test-results/
+blob-report/
 
 # Debug logs
 npm-debug.log*
