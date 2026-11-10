@@ -1,6 +1,6 @@
 # FR-2 — Banner fetch script that writes static JSON
 
-**Status:** approved by user 2026-11-09 (revision 3)
+**Status:** approved by user 2026-11-09 (revision 4: building-campus rule, FR-1 review consensus)
 **Owner:** product-manager · **Approved by:** vp-product, <user>
 **Depends on:** FR-1, FR-6 · **Blocks:** FR-3 · **Overview:** `docs/specs/FR-0-overview.md`
 
@@ -20,7 +20,8 @@ A Node script, `npm run fetch-data` (`tsx scripts/fetch-data/index.ts`), that wr
    - **Candidate meetings** have non-null `beginTime` and `endTime`, ≥1 day flag, a section `campusDescription` that `campusFromBannerName` maps to a campus (use the section-level campus; the meeting-level one is often null), and `building ≠ "VTL"`. Per term, `meetingCount` = candidates and `roomedMeetingCount` = candidates with non-null `building` and `room`. Only roomed candidates become meetings.
    - Convert `"1030"` → 630 and `MM/DD/YYYY` → `YYYY-MM-DD`.
    - **Hand-roll the HTML entity decoder.** Cover named entities (`&amp; &lt; &gt; &quot; &#39; &apos;`) and numeric ones (`&#NN;` / `&#xNN;`). Add no dependency.
-   - Room id = `<building>-<room>`. If one room appears under several campuses, take the campus with the most meetings and add a warning.
+   - Room id = `<building>-<room>`.
+   - **One campus per building:** each building gets the most common section-level campus among its roomed meetings, with ties broken by the lowest campus code. Every room in the building inherits that campus. If a building's sections span more than one campus, log the warning `Building <code> has sections from campuses <A>, <B>; assigned <A>.`
    - **Collapse identical meetings** only when they share all of roomId, days, start, end, startDate, endDate **and `partOfTerm`** (for example, cross-listed sections). Keep the lowest `termCode`. Meetings that differ only in `partOfTerm` are all kept, because the calendar can suppress them differently.
    - Build `calendar` with FR-6's `buildCalendarBlock` and append `missingCalendarWarnings`.
 4. **Validate and write:** run `validateSchedule` (FR-1), then apply the guards and the write rule below.
@@ -80,6 +81,11 @@ A Node script, `npm run fetch-data` (`tsx scripts/fetch-data/index.ts`), that wr
   - **Vanished term:** with `--today 2026-11-20`, the existing file has 202710 (endDate 2026-12-20) and 202730. In one case Banner returns `totalCount: 0` for 202710; in another, 202710 is absent from `getTerms`. Both exit 1 and leave the file byte-identical. Both exit 0 with `--force`.
   - **Not vanished:** with `--today 2026-12-21`, the same 202710 (endDate 2026-12-20 < today) is absent, and the run exits 0.
 - [ ] AC6 **Room-assignment counts (test):** a fixture term with 10 candidate meetings, 6 of them roomed, gets `meetingCount: 10, roomedMeetingCount: 6`. Online (VTL or Online campus) and no-time meetings are counted in neither.
+- [ ] AC6b **Building campus (test):**
+  - A building `XB` with 3 roomed meetings from BOS sections and 1 from a BRD section → `XB` and all its rooms get campus `BOS`, and one warning names `XB`, `BOS` and `BRD`.
+  - A 2–2 tie between BRD and BOS → `BOS` (lowest code).
+  - A building whose sections are all one campus → no warning.
+  - The output passes the invariant that `room.campus` equals its building's campus.
 - [ ] AC7 **Dedupe (test):**
   - Two identical meetings with the same `partOfTerm "1"` from terms 202730 and 202710 collapse to one with `termCode "202710"`.
   - Identical meetings with parts `1` and `2B` stay as two meetings.

@@ -1,6 +1,6 @@
 # FR-5 — Free-rooms UI
 
-**Status:** approved by user 2026-11-09 (revision 3)
+**Status:** approved by user 2026-11-09 (revision 4: design guidance, FR-1 review consensus)
 **Owner:** product-manager · **Approved by:** vp-product, <user>
 **Depends on:** FR-1, FR-4 · **Overview:** `docs/specs/FR-0-overview.md`
 
@@ -37,6 +37,14 @@ A single page at `/`, a client component that fetches the schedule once **at run
    - **Rooms incomplete** (per entry in `dayContext.incompleteTerms`): "Room assignments for <Spring 2027 Semester> are incomplete (<N>% assigned), so some rooms shown free may not be."
 8. **Footer:** "Shows scheduled classes only. Rooms may be locked or booked for events."
 
+### Design guidance (from the FR-1 design review, consensus 2026-11-09)
+- Informational banners (stale, no-class, exam, outside coverage, calendar unknown, rooms incomplete) use `role="status"` or no live role. Only the "Couldn't load room data" error uses `role="alert"`.
+- The campus tab list scrolls horizontally (`overflow-x-auto`). Its triggers are ≥ 44 px tall at phone widths.
+- The primary phone buttons, "Now" and "Retry", are ≥ 44 px tall.
+- No small muted text on muted surfaces. Muted text sits only on the default background.
+- Class names are merged with `cn` from `@/lib/utils`.
+- Light mode only (`color-scheme: light`, set in FR-1). Dark mode is out of scope for v1.
+
 ## Acceptance criteria
 Component tests (Vitest + Testing Library, jsdom) use a fixture `components/free-rooms/__fixtures__/schedule.json` and a mocked clock and `fetch`, unless the AC says otherwise.
 - [ ] AC1: While loading, skeletons render. If the fetch fails or `schemaVersion ≠ 1`, the page shows "Couldn't load room data. Try again later." with a Retry button that fetches again.
@@ -64,9 +72,15 @@ Component tests (Vitest + Testing Library, jsdom) use a fixture `components/free
   - calendar unknown: fixture with `termYears: []`.
 - [ ] AC12: For a date in 202730 where the fixture has `meetingCount: 1000, roomedMeetingCount: 300`, the banner reads exactly "Room assignments for Spring 2027 Semester are incomplete (30% assigned), so some rooms shown free may not be." For a date in 202710 (fixture 95% roomed), no such banner appears.
 - [ ] AC13: When no room is free (and the switch is off), the page shows "No free rooms at this time." and no empty building groups.
+- [ ] AC13b **Roles (component test):**
+  - With the stale and exam banners showing, `getAllByRole("status")` finds both and `queryByRole("alert")` is null.
+  - In the load-error state, `getByRole("alert")` contains "Couldn't load room data".
+  - No file in `components/free-rooms/` defines its own `cn` (`grep -rn "function cn" components/free-rooms` prints nothing).
 - [ ] AC14 (screen state, checked by hand against real data with `npm run dev`):
   - At 375 px width the page is one column with no horizontal scroll.
-  - Tabs scroll horizontally if they overflow.
+  - The tab list scrolls horizontally (`overflow-x-auto`) when it overflows.
+  - Tab triggers and the Now and Retry buttons measure ≥ 44 px tall in DevTools.
+  - No muted-foreground text appears on a muted background.
   - All controls work with the keyboard only (Tab, arrow keys between tabs, Enter or Space).
 - [ ] AC15: `app/page.tsx` is a thin server component that renders the client component. The schedule is fetched in the browser at runtime, not embedded in the HTML or bundle:
   - `npm run build` output shows `/` as static
@@ -82,7 +96,8 @@ Component tests (Vitest + Testing Library, jsdom) use a fixture `components/free
 - A long building name wraps without breaking the card layout.
 
 ## Out of scope
-- URL or shareable state, map, `/browse`, events, dark-mode toggle, room details pages, saving favourites.
+- URL or shareable state, map, `/browse`, events, room details pages, saving favourites.
+- Dark mode of any kind (the page is light-only via `color-scheme: light`).
 
 ## Files likely touched
 - `app/page.tsx`
