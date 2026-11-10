@@ -168,7 +168,7 @@ function rankByCount(counts: Map<string, number>): string[] {
 export function transformTerms(
   fetched: readonly FetchedTerm[],
   today: string,
-  placeholderPatterns: readonly RegExp[] = [],
+  placeholderPatterns: readonly RegExp[],
 ): TransformResult {
   const warnings: string[] = [];
   const placeholderMeetings = new Map<string, number>();

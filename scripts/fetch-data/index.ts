@@ -110,10 +110,19 @@ export function summaryLine(file: {
 /** Warnings so far. Owned by main(), so a failed run still prints them (FR-2b). */
 type WarningLog = { warnings: string[]; printed: boolean };
 
+/**
+ * Escapes a workflow-command message the way @actions/core does, so a Banner
+ * string with a newline can't start its own `::error::` (or any) command.
+ * Only the printed line is escaped; `warnings[]` in the file keeps the raw text.
+ */
+export function escapeCommandData(text: string): string {
+  return text.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+}
+
 function printWarnings(log: WarningLog, print: (line: string) => void): void {
   if (log.printed) return;
   log.printed = true;
-  for (const text of log.warnings) print(`::warning::${text}`);
+  for (const text of log.warnings) print(`::warning::${escapeCommandData(text)}`);
 }
 
 async function run(options: Options, deps: MainDeps, warningLog: WarningLog): Promise<void> {
@@ -150,8 +159,10 @@ async function run(options: Options, deps: MainDeps, warningLog: WarningLog): Pr
     log(`  ${term.code} ${term.description}: ${unique} of ${totalCount} sections.`);
     if (totalCount > 0 && unique < totalCount) {
       // Banner's paging can repeat a row and skip another while data shifts.
-      // Re-fetch the term once from scratch (FR-2b Solution 7), then re-check.
-      warnings.push(`Term ${term.code}: re-fetched after a paging shortfall (${unique}/${totalCount})`);
+      // Re-fetch the term once from scratch (FR-2b Solution 5), then re-check.
+      warnings.push(
+        `Term ${term.code}: fetched ${unique} unique sections but Banner reported ${totalCount}; re-fetched once.`,
+      );
       ({ totalCount, sections } = await client.searchTerm(term.code));
       unique = dedupeSections(sections).length;
       log(`  ${term.code} ${term.description}: re-fetched, ${unique} of ${totalCount} sections.`);
@@ -184,7 +195,7 @@ async function run(options: Options, deps: MainDeps, warningLog: WarningLog): Pr
     warnings.push(...problems.map((problem) => `--force overrode: ${problem}`));
   }
 
-  const file = withSizeWarning(
+  const { file, warning: sizeWarning } = withSizeWarning(
     buildScheduleFile({
       entities,
       calendar: buildCalendarBlock(calendarSources),
@@ -192,7 +203,7 @@ async function run(options: Options, deps: MainDeps, warningLog: WarningLog): Pr
       generatedAt: startedAt.toISOString(),
     }),
   );
-  warnings.push(...file.warnings.slice(warnings.length));
+  if (sizeWarning !== null) warnings.push(sizeWarning);
 
   const validation = validateSchedule(file);
   if (!validation.ok) {

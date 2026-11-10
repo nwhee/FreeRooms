@@ -6,13 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildCalendarBlock, loadCalendarFiles } from "../../lib/calendar/load";
 import { type ScheduleFile, validateSchedule } from "../../lib/data/schema";
 import { type BannerSection, searchPageSchema, termsPageSchema, USER_AGENT } from "./banner-client";
-import { main } from "./index";
+import { escapeCommandData, main } from "./index";
+import { loadPlaceholderPatterns } from "./placeholders";
 import { type FetchedTerm, transformTerms } from "./transform";
 import { buildScheduleFile, serializeSchedule } from "./write";
 import { fakeBanner, type FakeBannerOptions } from "./__fixtures__/fake-banner";
 import { roomedSections, section } from "./__fixtures__/sections";
 
 const CALENDAR_DIR = fileURLToPath(new URL("../../data/calendar", import.meta.url));
+const PLACEHOLDERS = loadPlaceholderPatterns(fileURLToPath(new URL("./placeholder-rooms.json", import.meta.url)));
 const NOW = new Date("2026-11-09T08:00:00.000Z");
 const HOUR = 60 * 60 * 1000;
 
@@ -62,7 +64,7 @@ function existingOut(existing: ScheduleFile | string): { out: string; bytes: str
 
 /** A valid schedule built the same way the script builds one. */
 function schedule(terms: FetchedTerm[], today: string, generatedAt = NOW.toISOString()): ScheduleFile {
-  const entities = transformTerms(terms, today);
+  const entities = transformTerms(terms, today, PLACEHOLDERS);
   const file = buildScheduleFile({
     entities,
     calendar: buildCalendarBlock(loadCalendarFiles(CALENDAR_DIR)),
@@ -200,7 +202,7 @@ describe("fail loudly (FR-2 AC5)", () => {
       { ...FIXTURE_BANNER, totalCounts: { "202730": 40 } },
       /Term 202730: fetched 16 unique sections but Banner reported 40/,
     );
-    // FR-2b Solution 7: one full re-fetch before failing.
+    // FR-2b Solution 5: one full re-fetch before failing.
     expect(result.fake.log.filter((entry) => entry.startsWith("page:202730"))).toEqual([
       "page:202730@0",
       "page:202730@17",
@@ -549,53 +551,130 @@ describe("warnings survive a failed run (FR-2b AC5)", () => {
   });
 });
 
-describe("paging-shortfall re-fetch (FR-2b Solution 7)", () => {
-  const TOTAL = 1_200;
-  const clean = roomedSections("202730", TOTAL);
-  /** Banner's paging drift: row 700 is repeated where row 701 should be. */
-  const drifted = clean.map((row, i) => (i === 701 ? clean[700] : row));
+describe("re-fetch on a paging shortfall (FR-2b Solution 5, AC8b)", () => {
+  const TOTAL = 1_000;
+  const DELAY_MS = 2_500;
+  const springClean = roomedSections("202730", TOTAL, { building: "SP" });
+  const fallClean = roomedSections("202710", TOTAL, { building: "FA" });
+  /** Banner's paging drift: row 700 repeated where row 701 should be, so 999 unique. */
+  const drift = <T,>(rows: T[]) => rows.map((row, i) => (i === 701 ? rows[700] : row));
+  const refetchWarning = (term: string) =>
+    `Term ${term}: fetched 999 unique sections but Banner reported ${TOTAL}; re-fetched once.`;
 
-  /** A fake Banner that serves `passes[n]` on the n-th term/search for 202730 (the last one repeats). */
-  function bannerWithPasses(passes: unknown[][]): FakeBannerOptions {
-    let pass = -1;
+  /** Serves `passes[term][n]` on the n-th term/search for that term; the last pass repeats. */
+  function bannerWithPasses(
+    terms: { code: string; description: string }[],
+    passes: Record<string, unknown[][]>,
+  ): FakeBannerOptions {
+    const passByTerm = new Map<string, number>();
+    let current = "";
     return {
-      terms: [SPRING],
-      totalCounts: { "202730": TOTAL },
+      terms,
       intercept: (request) => {
-        if (request.url.includes("term/search")) pass++;
+        if (request.url.includes("term/search")) {
+          current = new URLSearchParams(request.body ?? "").get("term") ?? "";
+          passByTerm.set(current, (passByTerm.get(current) ?? -1) + 1);
+        }
         if (!request.url.includes("searchResults/searchResults")) return undefined;
-        const params = new URL(request.url).searchParams;
-        const offset = Number(params.get("pageOffset"));
-        const rows = passes[Math.min(pass, passes.length - 1)].slice(offset, offset + 500);
-        return new Response(JSON.stringify({ success: true, totalCount: TOTAL, data: rows }));
+        const offset = Number(new URL(request.url).searchParams.get("pageOffset"));
+        const termPasses = passes[current];
+        const rows = termPasses[Math.min(passByTerm.get(current) ?? 0, termPasses.length - 1)];
+        return new Response(JSON.stringify({ success: true, totalCount: TOTAL, data: rows.slice(offset, offset + 500) }));
       },
     };
   }
 
-  it("re-fetches once after a duplicated-and-dropped row, then exits 0 with the warning", async () => {
+  /** The request log as "reset", "term:<code>", "page:<offset>", in order. */
+  function sequence(requests: { url: string; body: string | null }[]): string[] {
+    return requests.flatMap((request) => {
+      if (request.url.includes("resetDataForm")) return ["reset"];
+      if (request.url.includes("term/search")) return [`term:${new URLSearchParams(request.body ?? "").get("term")}`];
+      if (request.url.includes("searchResults/searchResults")) {
+        return [`page:${new URL(request.url).searchParams.get("pageOffset")}`];
+      }
+      return [];
+    });
+  }
+  const onePass = (term: string) => ["reset", `term:${term}`, "page:0", "page:500"];
+
+  it("case 1: re-fetches once after a duplicated-and-dropped row, then exits 0 with the warning", async () => {
     const out = join(tempDir(), "schedule.json");
-    const result = await runMain(["--out", out], bannerWithPasses([drifted, clean]));
+    const result = await runMain(
+      ["--out", out, "--delay-ms", String(DELAY_MS)],
+      bannerWithPasses([SPRING], { "202730": [drift(springClean), springClean] }),
+    );
     expect(result.errorText).toBe("");
     expect(result.code).toBe(0);
-    const warning = "Term 202730: re-fetched after a paging shortfall (1199/1200)";
-    expect(result.stdout).toContain(`::warning::${warning}`);
-    expect(readOut(out).warnings).toContain(warning);
-    expect(readOut(out).rooms).toHaveLength(TOTAL);
-    // getTerms + 2 passes x (reset, term/search, 3 pages).
-    expect(result.fake.requests).toHaveLength(1 + 2 * 5);
+    expect(result.stdout).toContain(`::warning::${refetchWarning("202730")}`);
+    const written = readOut(out);
+    expect(written.warnings).toContain(refetchWarning("202730"));
+    expect(written.rooms).toHaveLength(TOTAL);
+    // Row 701, dropped on the first pass, is room SP-801.
+    expect(written.rooms.map((room) => room.id)).toContain("SP-801");
+    expect(sequence(result.fake.requests)).toEqual([...onePass("202730"), ...onePass("202730")]);
+    expect(Math.min(...result.sleeps)).toBeGreaterThanOrEqual(DELAY_MS);
   });
 
-  it("exits 1 when short on both passes, after exactly one re-fetch", async () => {
+  it("case 2: exits 1 when short on both passes, after exactly one re-fetch, still printing the warning", async () => {
     const { out, bytes } = existingOut(OLD_SCHEDULE);
-    const result = await runMain(["--out", out], bannerWithPasses([drifted]));
+    const result = await runMain(
+      ["--out", out, "--delay-ms", String(DELAY_MS)],
+      bannerWithPasses([SPRING], { "202730": [drift(springClean)] }),
+    );
     expect(result.code).toBe(1);
-    expect(result.errorText).toMatch(/Term 202730: fetched 1199 unique sections but Banner reported 1200/);
-    expect(result.fake.requests.filter((r) => r.url.includes("resetDataForm"))).toHaveLength(2);
-    expect(result.fake.requests.filter((r) => r.url.includes("term/search"))).toHaveLength(2);
-    expect(result.fake.requests.filter((r) => r.url.includes("searchResults/searchResults"))).toHaveLength(6);
-    expect(result.fake.requests).toHaveLength(1 + 2 * 5);
-    expect(result.stdout).toContain("::warning::Term 202730: re-fetched after a paging shortfall (1199/1200)");
+    expect(result.errorText).toMatch(/Error: Term 202730: fetched 999 unique sections but Banner reported 1000\.$/m);
+    expect(result.stdout).toContain(`::warning::${refetchWarning("202730")}`);
+    expect(sequence(result.fake.requests)).toEqual([...onePass("202730"), ...onePass("202730")]);
+    expect(Math.min(...result.sleeps)).toBeGreaterThanOrEqual(DELAY_MS);
     expect(readFileSync(out, "utf8")).toBe(bytes);
+  });
+
+  it("case 3: two terms short on their first pass and clean on the second are each re-fetched once", async () => {
+    const out = join(tempDir(), "schedule.json");
+    const result = await runMain(
+      ["--out", out, "--delay-ms", String(DELAY_MS)],
+      bannerWithPasses([SPRING, FALL], {
+        "202710": [drift(fallClean), fallClean],
+        "202730": [drift(springClean), springClean],
+      }),
+    );
+    expect(result.errorText).toBe("");
+    expect(result.code).toBe(0);
+    const written = readOut(out);
+    expect(written.warnings.filter((w) => w.endsWith("; re-fetched once."))).toEqual([
+      refetchWarning("202710"),
+      refetchWarning("202730"),
+    ]);
+    expect(written.rooms.map((room) => room.id)).toEqual(expect.arrayContaining(["FA-801", "SP-801"]));
+    expect(sequence(result.fake.requests)).toEqual([
+      ...onePass("202710"),
+      ...onePass("202710"),
+      ...onePass("202730"),
+      ...onePass("202730"),
+    ]);
+    expect(Math.min(...result.sleeps)).toBeGreaterThanOrEqual(DELAY_MS);
+  });
+});
+
+describe("workflow-command escaping (FR-2b security)", () => {
+  it("escapes %, CR and LF like @actions/core", () => {
+    expect(escapeCommandData("100% done\r\n::error::x")).toBe("100%25 done%0D%0A::error::x");
+  });
+
+  it("prints an escaped ::warning:: for a campus name containing \\n::error::x, and stores it unescaped", async () => {
+    const out = join(tempDir(), "schedule.json");
+    const hostile = "Mars\n::error::x";
+    const result = await runMain(["--out", out], {
+      terms: [SPRING],
+      sections: {
+        "202730": [section({ crn: "1" }), section({ crn: "2", campus: hostile, meetings: [{ building: "MX", room: "1" }] })],
+      },
+    });
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain('::warning::Unknown campus "Mars%0A::error::x" on 1 meeting; skipped.');
+    const printedLines = result.stdout.join("\n").split(/\r?\n|\r/);
+    expect(printedLines.some((line) => line.startsWith("::error::"))).toBe(false);
+    expect(readOut(out).warnings).toContain(`Unknown campus "${hostile}" on 1 meeting; skipped.`);
   });
 });
 
