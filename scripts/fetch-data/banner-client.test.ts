@@ -213,3 +213,67 @@ describe("BannerClient politeness (FR-2 AC4)", () => {
     }
   });
 });
+
+describe("Retry-After cap (FR-2b AC7)", () => {
+  const NOW_MS = Date.parse("2026-11-10T12:00:00Z");
+
+  function retryAfter(value: string) {
+    const banner = fakeBanner({
+      terms: TERMS,
+      intercept: (_request, index) =>
+        index === 0 ? new Response("busy", { status: 503, headers: { "Retry-After": value } }) : undefined,
+    });
+    const sleeps: number[] = [];
+    const client = new BannerClient({
+      fetch: banner.fetch,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      delayMs: 2_000,
+      now: () => NOW_MS,
+    });
+    return { client, sleeps, banner };
+  }
+
+  it("fails on Retry-After: 301 without sleeping", async () => {
+    const { client, sleeps, banner } = retryAfter("301");
+    await expect(client.getTerms()).rejects.toThrow(/retry after 301 s, over the 300 s limit/);
+    expect(sleeps.filter((ms) => ms >= 301_000)).toEqual([]);
+    expect(banner.requests).toHaveLength(1);
+  });
+
+  it("sleeps 300,000 ms on Retry-After: 300, then retries", async () => {
+    const { client, sleeps, banner } = retryAfter("300");
+    expect(await client.getTerms()).toEqual(TERMS);
+    expect(sleeps).toEqual([300_000]);
+    expect(banner.requests).toHaveLength(2);
+  });
+
+  it("fails on an HTTP date 10 minutes after now", async () => {
+    const { client, sleeps } = retryAfter(new Date(NOW_MS + 600_000).toUTCString());
+    await expect(client.getTerms()).rejects.toThrow(/retry after 600 s, over the 300 s limit/);
+    expect(sleeps).toEqual([]);
+  });
+
+  it("sleeps 60,000 ms on an HTTP date 60 s after now", async () => {
+    const { client, sleeps } = retryAfter(new Date(NOW_MS + 60_000).toUTCString());
+    expect(await client.getTerms()).toEqual(TERMS);
+    expect(sleeps).toEqual([60_000]);
+  });
+});
+
+describe("page cap (FR-2b AC8)", () => {
+  it("fails a term whose pages never end after exactly 100 searchResults requests, naming the term", async () => {
+    const rows = manySections("202730", 500);
+    const { client, banner } = setup({
+      intercept: (request) =>
+        request.url.includes("searchResults/searchResults")
+          ? new Response(JSON.stringify({ success: true, totalCount: 60_000, data: rows }))
+          : undefined,
+    });
+    await expect(client.searchTerm("202730")).rejects.toThrow(
+      new BannerError("Term 202730: still short of totalCount 60000 after 100 searchResults pages"),
+    );
+    expect(banner.requests.filter((request) => request.url.includes("searchResults/searchResults"))).toHaveLength(100);
+  });
+});

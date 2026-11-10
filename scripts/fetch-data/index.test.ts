@@ -508,3 +508,58 @@ describe("no network in unit tests (FR-2 AC14)", () => {
     expect(stderr.join("\n")).toMatch(/unit tests must not make network calls/);
   });
 });
+
+describe("warnings survive a failed run (FR-2b AC5)", () => {
+  it("prints the unknown-campus ::warning:: before the room-drop failure, in one ordered log", async () => {
+    const existing = schedule([{ ...SPRING, sections: roomedSections("202730", 10) }], "2026-11-01");
+    const { out, bytes } = existingOut(existing);
+    const banner = fakeBanner({
+      terms: [SPRING],
+      sections: {
+        "202730": [
+          ...roomedSections("202730", 4),
+          section({ crn: "777", campus: "Mars Colony", meetings: [{ building: "MX", room: "1" }] }),
+        ],
+      },
+    });
+    const log: string[] = [];
+    const code = await main(["--out", out], {
+      fetch: banner.fetch,
+      sleep: async () => {},
+      now: () => NOW,
+      stdout: (line) => log.push(`out: ${line}`),
+      stderr: (line) => log.push(`err: ${line}`),
+      calendarDir: CALENDAR_DIR,
+    });
+    expect(code).toBe(1);
+    const warning = log.indexOf('out: ::warning::Unknown campus "Mars Colony" on 1 meeting; skipped.');
+    const failure = log.findIndex((line) =>
+      line.startsWith("err: Error: Term 202730 Spring 2027 Semester has meetings in 4 rooms"),
+    );
+    expect(warning).toBeGreaterThanOrEqual(0);
+    expect(failure).toBeGreaterThan(warning);
+    expect(log.filter((line) => line.includes("::warning::"))).toHaveLength(1);
+    expect(readFileSync(out, "utf8")).toBe(bytes);
+  });
+});
+
+describe("--today validation (FR-2b AC6)", () => {
+  it.each(["2026-13-45", "2026-02-29", "2026-11-1", "tomorrow"])(
+    "%s exits 1 with Invalid --today and makes no request",
+    async (value) => {
+      const result = await runMain(["--out", join(tempDir(), "schedule.json"), "--today", value], FIXTURE_BANNER);
+      expect(result.code).toBe(1);
+      expect(result.errorText).toContain(`Invalid --today: ${value}`);
+      expect(result.fake.requests).toHaveLength(0);
+    },
+  );
+
+  it("accepts the leap day 2028-02-29", async () => {
+    const result = await runMain(
+      ["--out", join(tempDir(), "schedule.json"), "--today", "2028-02-29", "--dry-run"],
+      FIXTURE_BANNER,
+    );
+    expect(result.errorText).not.toContain("Invalid --today");
+    expect(result.stdout).toContain("Today is 2028-02-29. Fetching 202710, 202730.");
+  });
+});
