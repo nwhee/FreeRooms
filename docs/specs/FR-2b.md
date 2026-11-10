@@ -1,7 +1,7 @@
 # FR-2b — Fetch script hardening: placeholder rooms and guard fixes
 
-**Status:** Draft, pending vp-product spec review (revision 2)
-**Owner:** product-manager · **Approved by:** pending (product-manager + vp-product consensus)
+**Status:** Approved by product-manager + vp-product consensus (vp-product spec review 2026-11-10: PASS_WITH_NOTES on revision 2). The AC8b re-fetch addendum was added afterwards by consensus and is being checked in code review.
+**Owner:** product-manager · **Approved by:** product-manager, vp-product
 **Findings from:** QA, vp-product, vp-engineering, security-reviewer (FR-2 review against live data, 2026-11-10)
 **Depends on:** FR-2 (merged) · **Overview:** `docs/specs/FR-0-overview.md` · **Parent spec:** `docs/specs/FR-2.md`
 
@@ -68,7 +68,11 @@ Tests are in `scripts/fetch-data/*.test.ts` with mocked fetch and no network, un
   - The `Excluded …` warning lists exactly `BOS-DEPT, MSI-NA, NY-FND-OS1, NY-FND-OS2, NY-FND-OS3, NY-FND-OS4, NY-FND-OS5, XCR-ROOM`. Any other id in that list fails this AC and goes back to the PM to adjust the patterns.
   - `jq '.rooms | length'` is within ±5% of `P − 8` (for P = 572: 536–592).
   - `jq` confirms that `EL-AUD`, `NY-CH-BLBX`, `NY-CH-DS`, `NY-CH-GHE`, `NY-CH-GHW` and `NY-NH-THTR` are still present, if they're in the current file.
-- [ ] AC10 **Existing tests:** `npm run check` passes. The only FR-2 test expected to change is `scripts/fetch-data/index.test.ts:494` (the `--today` message, now `Invalid --today: <value>`). Every other FR-2 test, including `index.test.ts:467` (the invalid-existing-file behaviour), passes unchanged.
+- [ ] AC10 **Existing tests:** `npm run check` passes. Only two FR-2 assertions are expected to change:
+  - `scripts/fetch-data/index.test.ts:494`: the `--today` message, now `Invalid --today: <value>`.
+  - The FR-2 "unique sections < totalCount" shortfall test: it now expects two fetch passes (the original plus one re-fetch, per AC8b) before exit 1.
+
+  Every other FR-2 test, including `index.test.ts:467` (the invalid-existing-file behaviour), passes unchanged.
 
 ## Edge cases
 - A real room that happens to be named like a placeholder (a room literally called `NA`) is excluded. Accepted; remove the pattern if it's ever reported.
@@ -87,4 +91,4 @@ Tests are in `scripts/fetch-data/*.test.ts` with mocked fetch and no network, un
 - `scripts/fetch-data/*.test.ts`, `scripts/fetch-data/__fixtures__/*.json`
 
 ## Open questions
-None. Every item is decided by product-manager and vp-product consensus, pending this review.
+None. Every item is decided by product-manager and vp-product consensus.
