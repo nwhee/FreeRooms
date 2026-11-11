@@ -9,7 +9,7 @@ import type { ScheduleEntities } from "./transform";
  */
 
 /** Rewrite unchanged content once the existing file is this old, so it never looks stale. */
-export const HEARTBEAT_MS = 48 * 60 * 60 * 1000;
+export const HEARTBEAT_MS = 24 * 60 * 60 * 1000;
 /** FR-0 size budget. */
 export const SIZE_WARNING_BYTES = 5_000_000;
 

@@ -6,7 +6,7 @@ import { isIsoDate, isValidTimeZone } from "../data/schema";
  */
 
 export const MINUTES_PER_DAY = 1440;
-const STALE_AFTER_MS = 72 * 60 * 60 * 1000;
+const STALE_AFTER_MS = 360 * 60 * 60 * 1000;
 
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type LocalNow = { date: string; minutes: number; weekday: Weekday };
@@ -68,7 +68,7 @@ export function localNow(timezone: string, instant: Date): LocalNow {
   return { date, minutes, weekday: isoWeekday(date) };
 }
 
-/** FR-0 "Stale": more than 72 hours between `generatedAt` and the viewer's `now`. */
+/** FR-0 "Stale": more than 360 hours (15 days) between `generatedAt` and the viewer's `now`. */
 export function isStale(generatedAt: string, now: Date): boolean {
   if (Number.isNaN(now.getTime())) throw new RangeError("Expected a valid Date for now");
   const generated = Date.parse(generatedAt);

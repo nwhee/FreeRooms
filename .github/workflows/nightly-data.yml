@@ -1,4 +1,4 @@
-# Nightly data refresh (docs/specs/FR-3.md).
+# Weekly data refresh (docs/specs/FR-3.md; weekly since FR-8, 2026-11-11).
 #
 # Fetches Banner into public/data/schedule.json (FR-2) and commits it as
 # schedule.json at the root of the `data` branch, which the UI reads at runtime
@@ -11,12 +11,15 @@
 # `publish` and `calendar-issue` only run when the run publishes: only on main, always
 # for the schedule, and for workflow_dispatch only when the `publish` input is true.
 # Any other run is a test run that prints what it would have written.
+#
+# Historical name "nightly-data" (file, workflow name, concurrency group) is kept so
+# links, run history and the re-enable path keep working. The schedule is weekly.
 
 name: nightly-data
 
 on:
   schedule:
-    - cron: "0 8 * * *" # 03:00 EST / 04:00 EDT
+    - cron: "0 8 * * 1" # Mondays 03:00 EST / 04:00 EDT
   workflow_dispatch:
     inputs:
       # Untick for a test run that writes nothing to GitHub (no push to data, no issue change).
@@ -100,7 +103,7 @@ jobs:
           run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           body_file="$RUNNER_TEMP/calendar-issue-body.md"
           {
-            echo "The nightly data run found terms with no academic calendar file, so no-class days and exam periods are missing for them:"
+            echo "The weekly data run found terms with no academic calendar file, so no-class days and exam periods are missing for them:"
             echo
             jq -r '.[] | "- " + .' <<< "$warnings"
             echo
@@ -192,7 +195,7 @@ jobs:
             echo "schedule.json already matches the data branch; nothing to commit."
             exit 0
           fi
-          git commit -m "data: nightly schedule update ($(TZ=America/New_York date +%F))"
+          git commit -m "data: weekly schedule update ($(TZ=America/New_York date +%F))"
           if ! git push origin data; then
             echo "Push rejected; rebasing onto origin/data and retrying once."
             git pull --rebase origin data

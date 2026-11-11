@@ -185,17 +185,25 @@ test("3 every campus renders, labels name it, statuses match, no placeholder roo
   expect(data.rooms.some((r) => PLACEHOLDERS.some((p) => r.id.includes(p)))).toBe(false);
 });
 
-test("4 header, and stale banner from a 4-day-old generatedAt (route mock)", async ({ page }) => {
+test("4 header, and the stale banner: none at 14 days, shown at 16 days (route mocks)", async ({ page }) => {
   await open(page);
   await expect(page.getByText("Covers: Fall 2026 Semester, Spring 2027 Semester")).toBeVisible();
-  await expect(page.getByText("Updated Nov 10, 2026, 3:25 AM")).toBeVisible();
+  await expect(page.getByText(/^Updated /)).toHaveText(`Updated ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" }).format(new Date(data.generatedAt))}`);
   await expect(page.getByText(/last updated/)).toHaveCount(0);
   await page.screenshot({ path: `${SHOTS}/4-header-desktop.png`, animations: "disabled" });
-  const copy = { ...data, generatedAt: new Date(NOW.getTime() - 4 * 24 * 3600 * 1000).toISOString() };
-  await page.route("**/data/schedule.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(copy) }));
-  await page.reload();
-  await expect(page.getByRole("status")).toContainText(["This data was last updated 4 days ago and may be out of date."]);
-  await page.screenshot({ path: `${SHOTS}/4-stale-4-days-desktop.png`, animations: "disabled" });
+  // FR-8: stale means more than 360 h (15 days). Serve in-memory copies with an older generatedAt.
+  const serveAged = async (days: number) => {
+    const copy = { ...data, generatedAt: new Date(NOW.getTime() - days * 24 * 3600 * 1000).toISOString() };
+    await page.unrouteAll();
+    await page.route("**/data/schedule.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(copy) }));
+    await page.reload();
+    await expect(page.getByRole("tab").first()).toBeVisible();
+  };
+  await serveAged(14);
+  await expect(page.getByText(/last updated/)).toHaveCount(0);
+  await serveAged(16);
+  await expect(page.getByRole("status")).toContainText(["This data was last updated 16 days ago and may be out of date."]);
+  await page.screenshot({ path: `${SHOTS}/4-stale-16-days-desktop.png`, animations: "disabled" });
 });
 
 for (const [label, width] of [["desktop", 1280], ["phone", 375]] as const) {
