@@ -357,15 +357,15 @@ describe("write rule (FR-2 AC8)", () => {
 
   it("does not rewrite the same content with a fresh generatedAt", async () => {
     const { out, bytes } = await firstRun();
-    const result = await runMain(["--out", out], FIXTURE_BANNER, { now: new Date(NOW.getTime() + 47 * HOUR) });
+    const result = await runMain(["--out", out], FIXTURE_BANNER, { now: new Date(NOW.getTime() + 23 * HOUR) });
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("No change; not writing.");
     expect(readFileSync(out, "utf8")).toBe(bytes);
   });
 
-  it("rewrites the same content when generatedAt is 49 h old", async () => {
+  it("rewrites the same content when generatedAt is 25 h old", async () => {
     const { out } = await firstRun();
-    const later = new Date(NOW.getTime() + 49 * HOUR);
+    const later = new Date(NOW.getTime() + 25 * HOUR);
     const result = await runMain(["--out", out], FIXTURE_BANNER, { now: later });
     expect(result.stdout).not.toContain("No change; not writing.");
     expect(readOut(out).generatedAt).toBe(later.toISOString());
