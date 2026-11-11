@@ -1,7 +1,7 @@
 # QA report FR-1 (qa-tester, verbatim findings; saved by manager because the harness blocked QA writing report.md)
 
 VERDICT: PASS_WITH_NOTES — all 12 ACs (AC1–AC10, AC5b, AC5c) pass on a fresh clone of fr-1-scaffold (bd5472d), Node 24, telemetry off.
-Evidence: docs/qa/FR-1/ (screenshots AC5-build-serves-404-{desktop,phone}.png, evidence/qa-check.txt, qa-build-unset.txt, qa-build-empty.txt, qa-build-set.txt, qa-dev.txt, qa-probe.txt, FR-1.spec.ts.txt).
+Evidence: docs/qa/FR-1/ (screenshots — ; evidence/qa-check.txt, qa-build-unset.txt, qa-build-empty.txt, qa-build-set.txt, qa-dev.txt, qa-probe.txt, FR-1.spec.ts.txt).
 
 AC5c: warning present for unset and empty NEXT_PUBLIC_DATA_URL builds, absent when set, absent in check / next dev / next start; all builds exit 0.
 AC7: independent probe broke each FR-0 invariant one at a time; each returns a specific path-named error; null/undefined/string/number/array return ok:false without throwing.

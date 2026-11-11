@@ -15,7 +15,7 @@ VERDICT: PASS_WITH_NOTES. `main` at af83aef, `npm run build` exit 0 (`/` static,
 
 Beyond the brief:
 - Medium (data): no London campus in the real Banner output, although the calendar lists LDN for breaks. Likely London sections are unroomed/online this term; to be confirmed.
-- Low: at 375 px long campus names wrap the date/time labels to two lines.
+- Low: at 375 px long campus names wrap the date/time labels to two lines. 3-campus-VAN-phone.png
 - Info: schedule.json served with `Cache-Control: public, max-age=0` locally.
 
-Screenshots: 31 PNGs in this folder.
+Screenshots: 1 PNG in this folder (the cited finding above; text and data checks rely on the Playwright assertions). Pruned in QA-PRUNE; deleted files remain in git history.

@@ -3,7 +3,6 @@ import { expect, test, type Page } from "@playwright/test";
 // FR-1 has no pages yet: every route renders the root layout plus Next's 404.
 // Run against a local build: `npm run build && npm run start -- -p 3100`,
 // then `PLAYWRIGHT_BASE_URL=http://localhost:3100 npx playwright test e2e/FR-1.spec.ts`.
-const SHOTS = "docs/qa/FR-1";
 
 /** Resolves any CSS colour (including oklch) to sRGB via a canvas, then returns the WCAG contrast ratio. */
 async function contrast(page: Page, fgVar: string, bgVar: string): Promise<number> {
@@ -44,7 +43,6 @@ test.describe("FR-1", () => {
       await expect(page.locator("html")).toHaveAttribute("lang", "en");
       const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       expect(scrollWidth).toBeLessThanOrEqual(width);
-      await page.screenshot({ path: `${SHOTS}/AC5-build-serves-404-${label}.png`, fullPage: true });
     });
   }
 

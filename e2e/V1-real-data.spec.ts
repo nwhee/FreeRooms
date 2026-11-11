@@ -94,7 +94,6 @@ for (const [label, width] of [["desktop", 1280], ["phone", 375]] as const) {
     await expect(page.getByLabel("Time (Boston time)")).toHaveValue("10:00");
     await expect(page.getByLabel("Date (Boston time)")).toHaveValue("2026-11-10");
     expect(await freeCount(page)).toBeGreaterThan(0);
-    await page.screenshot({ path: `${SHOTS}/1-now-boston-${label}.png`, fullPage: false, animations: "disabled" });
     const expected = oracle("BOS", "2026-11-10", 600);
     const actual = await cards(page);
     expect(actual.size).toBe(expected.size);
@@ -116,7 +115,6 @@ test("1 spot-check three Boston rooms against their meetings (Tue 11-10 10:00)",
     console.log(`SPOT ${name} -> "${status}"; Tue meetings: ${meetings.map((m) => `${fmt(m.start)}-${fmt(m.end)} (${m.termCode} pt ${m.partOfTerm})`).join(", ") || "none"}`);
     await search.fill(`${room.building} ${room.room}`);
     await expect(page.locator("li", { hasText: name }).first()).toContainText(status);
-    await page.screenshot({ path: `${SHOTS}/1-spot-${room.id}.png`, animations: "disabled" });
   }
 });
 
@@ -127,14 +125,12 @@ test("2 time travel: Fall weekday 10:00 differs from 18:00 and both match the JS
   await expect(page.getByRole("button", { name: "Now" })).toHaveAttribute("aria-pressed", "false");
   const at10 = await cards(page);
   expect(Object.fromEntries(at10)).toEqual(Object.fromEntries(oracle("BOS", "2026-11-18", 600)));
-  await page.screenshot({ path: `${SHOTS}/2-fall-wed-1000.png`, animations: "disabled" });
   await page.getByLabel("Time (Boston time)").fill("18:00");
   const at18 = await cards(page);
   expect(Object.fromEntries(at18)).toEqual(Object.fromEntries(oracle("BOS", "2026-11-18", 1080)));
   const changed = [...at10].filter(([n, s]) => at18.get(n) !== s).length;
   console.log(`Fall Wed 11-18: busy at 10:00 = ${[...at10.values()].filter((s) => s.startsWith("In use")).length}, busy at 18:00 = ${[...at18.values()].filter((s) => s.startsWith("In use")).length}, cards changed = ${changed}`);
   expect(changed).toBeGreaterThan(0);
-  await page.screenshot({ path: `${SHOTS}/2-fall-wed-1800.png`, animations: "disabled" });
 });
 
 for (const [label, width] of [["desktop", 1280], ["phone", 375]] as const) {
@@ -148,19 +144,16 @@ for (const [label, width] of [["desktop", 1280], ["phone", 375]] as const) {
     await expect(page.getByRole("status")).toContainText([
       `Room assignments for Spring 2027 Semester are incomplete (${pct}% assigned), so some rooms shown free may not be.`,
     ]);
-    await page.screenshot({ path: `${SHOTS}/2-spring-incomplete-${label}.png`, animations: "disabled" });
     await date.fill("2026-11-26");
     await expect(page.getByRole("status")).toHaveText([
       "No classes at Boston on Thu, Nov 26 (Fall break). Rooms show as free, but buildings may be closed.",
     ]);
-    await page.screenshot({ path: `${SHOTS}/2-fall-break-${label}.png`, animations: "disabled" });
     await date.fill("2026-12-15");
     await expect(page.getByRole("status")).toHaveText([
       "Fall Law exam period: exams aren't in this data, so free rooms may be in use.",
       "Fall final exam period: exams aren't in this data, so free rooms may be in use.",
     ]);
     expect(Object.fromEntries(await cards(page))).toEqual(Object.fromEntries(oracle("BOS", "2026-12-15", 600)));
-    await page.screenshot({ path: `${SHOTS}/2-exam-${label}.png`, animations: "disabled" });
   });
 }
 
@@ -180,7 +173,7 @@ test("3 every campus renders, labels name it, statuses match, no placeholder roo
     for (const p of PLACEHOLDERS) expect(text, `${campus.code} shows ${p}`).not.toContain(p);
     console.log(`CAMPUS ${campus.code} ${campus.name}: ${date} ${time}, ${actual.size} rooms, ${await freeCount(page)} free`);
     await noHScroll(page);
-    await page.screenshot({ path: `${SHOTS}/3-campus-${campus.code}-phone.png`, animations: "disabled" });
+    if (campus.code === "VAN") await page.screenshot({ path: `${SHOTS}/3-campus-${campus.code}-phone.png`, animations: "disabled" });
   }
   expect(data.rooms.some((r) => PLACEHOLDERS.some((p) => r.id.includes(p)))).toBe(false);
 });
@@ -190,7 +183,6 @@ test("4 header, and the stale banner: none at 14 days, shown at 16 days (route m
   await expect(page.getByText("Covers: Fall 2026 Semester, Spring 2027 Semester")).toBeVisible();
   await expect(page.getByText(/^Updated /)).toHaveText(`Updated ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" }).format(new Date(data.generatedAt))}`);
   await expect(page.getByText(/last updated/)).toHaveCount(0);
-  await page.screenshot({ path: `${SHOTS}/4-header-desktop.png`, animations: "disabled" });
   // FR-8: stale means more than 360 h (15 days). Serve in-memory copies with an older generatedAt.
   const serveAged = async (days: number) => {
     const copy = { ...data, generatedAt: new Date(NOW.getTime() - days * 24 * 3600 * 1000).toISOString() };
@@ -203,7 +195,6 @@ test("4 header, and the stale banner: none at 14 days, shown at 16 days (route m
   await expect(page.getByText(/last updated/)).toHaveCount(0);
   await serveAged(16);
   await expect(page.getByRole("status")).toContainText(["This data was last updated 16 days ago and may be out of date."]);
-  await page.screenshot({ path: `${SHOTS}/4-stale-16-days-desktop.png`, animations: "disabled" });
 });
 
 for (const [label, width] of [["desktop", 1280], ["phone", 375]] as const) {
@@ -219,7 +210,6 @@ for (const [label, width] of [["desktop", 1280], ["phone", 375]] as const) {
       const want = data.rooms.filter((r) => r.campus === "BOS" && r.displayName.toLowerCase().includes(q.toLowerCase()));
       expect(names.length).toBe(want.length);
       await noHScroll(page);
-      await page.screenshot({ path: `${SHOTS}/5-search-${q.toLowerCase()}-${label}.png`, animations: "disabled" });
     }
   });
 }
