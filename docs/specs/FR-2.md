@@ -43,7 +43,7 @@ A Node script, `npm run fetch-data` (`tsx scripts/fetch-data/index.ts`), that wr
 ### Write rule
 - Write minified, sorted JSON only when:
   - the content excluding `generatedAt` differs from the existing file, **or**
-  - the existing `generatedAt` is ≥ 48 h old (a heartbeat that keeps the 72 h stale rule from firing while the job is healthy).
+  - the existing `generatedAt` is ≥ 144 h (6 days) old. This heartbeat keeps the 192 h stale rule from firing while the weekly job is healthy. The value was changed from 48 h by user decision on 2026-11-11 (FR-8). It lives in a single named constant, `HEARTBEAT_MS` in `write.ts`.
 - Otherwise print `No change; not writing.` and exit 0.
 
 ### CLI flags
@@ -91,7 +91,8 @@ A Node script, `npm run fetch-data` (`tsx scripts/fetch-data/index.ts`), that wr
   - Identical meetings with parts `1` and `2B` stay as two meetings.
 - [ ] AC8 **Write rule (tests):**
   - Same content and a fresh `generatedAt` → file not rewritten and `No change; not writing.` printed.
-  - Same content and a `generatedAt` 49 h old → rewritten.
+  - Same content and a `generatedAt` 143 h old → not rewritten.
+  - Same content and a `generatedAt` 145 h old → rewritten.
   - Changed content → rewritten.
   - Arrays are sorted as FR-0 specifies.
 - [ ] AC9 **Dry run (test):** `--dry-run` with mocked Banner prints the summary line and exits 0. The `--out` file is byte-identical, or still absent if it didn't exist. A failing guard under `--dry-run` still exits 1.

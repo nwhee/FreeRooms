@@ -28,7 +28,7 @@ An agent drafts `docs/deploy-drafts/deploy.sh`. A human reviews it and copies it
 - [ ] AC6 (manual, by the human after installing): with `NEXT_PUBLIC_DATA_URL` removed from Vercel production, the script exits 1 at step 3 before running `npm run check`. Answering `n` at the prompt exits 0 with no deployment created.
 
 ## Edge cases
-- The data branch doesn't exist yet → the step 3 curl fails → exit 1 with a hint to run the nightly workflow once with `publish: true`.
+- The data branch doesn't exist yet → the step 3 curl fails → exit 1 with a hint to run the data workflow (`nightly-data`, now weekly) once with `publish: true`.
 - Not logged in to Vercel → `vercel env ls` fails → exit 1.
 
 ## Out of scope
@@ -40,4 +40,4 @@ An agent drafts `docs/deploy-drafts/deploy.sh`. A human reviews it and copies it
 - `docs/deploy-drafts/deploy.sh`
 
 ## Open questions
-1. Should `deploy.sh` also confirm that the data is less than 3 days old before deploying? **No.** Stale data is a nightly-job problem, not a reason to block a code deploy. The UI already warns about it.
+1. Should `deploy.sh` also confirm that the data is fresh (under the 8-day stale threshold) before deploying? **No.** Stale data is a data-job problem, not a reason to block a code deploy. The UI already warns about it.

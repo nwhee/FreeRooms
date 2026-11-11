@@ -23,7 +23,7 @@ roomStatusesAt(index, campus: string, date: string, minutes: number): RoomStatus
 type RoomStatus =
   | { roomId: string; free: true;  freeUntil: number | null }   // null = rest of day
   | { roomId: string; free: false; busyUntil: number }
-isStale(generatedAt: string, now: Date): boolean      // > 72 h
+isStale(generatedAt: string, now: Date): boolean      // > 192 h (STALE_AFTER_MS, one named constant in time.ts)
 formatMinutes(m: number): string                      // 630 -> "10:30 AM", 1440 -> "12:00 AM"
 ```
 
@@ -60,7 +60,7 @@ Each AC is one or more Vitest cases in `lib/free-rooms/*.test.ts`, using small h
   - `2026-11-18T15:00:00Z` → America/New_York 2026-11-18, 600. Europe/London 900. America/Los_Angeles 420. America/Vancouver **480** (IANA tzdata 2026c: British Columbia is on permanent UTC-7 from March 2026; see FR-0). America/Toronto 600.
   - `2027-03-20T15:00:00Z` (US already on DST, UK not yet) → New York 660, London 900, Los Angeles 480.
   - `2026-11-19T03:30:00Z` → New York date 2026-11-18, 1350 (date rolls back across midnight). London 2026-11-19, 210.
-- [ ] AC12 **Staleness:** `isStale` is false at exactly 72 h after `generatedAt` and true at 72 h + 1 min.
+- [ ] AC12 **Staleness:** `isStale` is false at exactly 192 h after `generatedAt` and true at 192 h + 1 min. The threshold was changed from 72 h by user decision on 2026-11-11 (FR-8). It is defined once, as `STALE_AFTER_MS` in `lib/free-rooms/time.ts`.
 - [ ] AC13 **Campus filter:** `roomStatusesAt(index, "BOS", …)` returns statuses only for BOS rooms, one per room. Rooms with no meetings are free with `freeUntil` null.
 - [ ] AC14 **Performance:** for a generated index of 1,000 rooms and 20,000 meetings, `roomStatusesAt` for one campus and instant has a **median of 5 runs under 500 ms** (after one warm-up run). `buildIndex` runs once, not per call.
 - [ ] AC15: `lib/free-rooms/` imports nothing from `react`, `next` or `node:*` (`grep -rE "from ['\"](react|next|node:)" lib/free-rooms` prints nothing). `npm run check` passes.

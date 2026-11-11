@@ -24,7 +24,7 @@ code change.
 3. As a student, I search "snell" and see only Snell Library rooms.
 4. As a student at the Vancouver or London campus, "now" and the times shown are my campus's local time.
 5. As a student on a holiday or during finals, a banner tells me the class schedule doesn't apply (or might not), so I'm not misled.
-6. As a student, I can see which terms the data covers and when it was last updated. I get a warning if it's more than 3 days old, or if a term's room assignments are incomplete.
+6. As a student, I can see which terms the data covers and when it was last updated. I get a warning if it's more than 8 days old, or if a term's room assignments are incomplete.
 7. As the maintainer, I never touch the code when Fall turns into Spring. Once a year I add one calendar file. If I forget, a GitHub issue reminds me.
 
 ## Corrections to the brief
@@ -38,7 +38,7 @@ code change.
 CLAUDE.md says production changes go only through `scripts/deploy/`, which a human runs.
 So v1 must not rely on "Vercel deploys on every push". The user chose this model
 (repo `nwhee/FreeRooms`, public):
-- **Data is decoupled from deploys.** The nightly workflow (FR-3) commits `schedule.json` to the root of a dedicated **`data` branch**. It never commits to `main`.
+- **Data is decoupled from deploys.** The weekly data workflow (FR-3; weekly since 2026-11-11, FR-8) commits `schedule.json` to the root of a dedicated **`data` branch**. It never commits to `main`.
 - **The UI fetches the schedule at runtime** from `process.env.NEXT_PUBLIC_DATA_URL` (FR-5):
   - In production a human sets it in Vercel to `https://raw.githubusercontent.com/nwhee/FreeRooms/data/schedule.json`.
   - `NEXT_PUBLIC_*` values are **inlined at build time**, so after setting or changing it in Vercel, the human must **redeploy through `scripts/deploy/`** (FR-7) for it to take effect. A production build without it logs a loud warning (FR-1 AC5c).
@@ -71,7 +71,7 @@ All dates and times are **campus-local wall-clock**: a date `D` as `YYYY-MM-DD` 
 - **In coverage:** D falls inside at least one `terms[]` range.
 - **Calendar known:** a term covering D has its year prefix (first 4 digits of `code`) in `calendar.termYears`.
 - **Incomplete room assignment:** a term covering D has `meetingCount > 0` and `roomedMeetingCount / meetingCount < 0.80`.
-- **Stale:** `now − generatedAt > 72 hours`, measured with the viewer's clock.
+- **Stale:** `now − generatedAt > 192 hours` (8 days), measured with the viewer's clock. This was 72 h until the user switched the data job to weekly on 2026-11-11 (FR-8). Together with FR-2's 144 h heartbeat and the Monday cron, the banner appears only after a weekly run has been missed or has failed.
 
 ## Data contract (`schedule.json`, schemaVersion 1)
 FR-2 writes one minified file:
@@ -147,7 +147,7 @@ Size budget: about 2–3 MB minified. FR-2 warns if the file is over 5 MB.
 | Path | What | Owner |
 |---|---|---|
 | `public/data/schedule.json` | Local output of `npm run fetch-data`, **gitignored** | written by FR-2's script; not tracked on main |
-| `data` branch: `schedule.json` | Production data, committed nightly | FR-3 (workflow) |
+| `data` branch: `schedule.json` | Production data, committed weekly | FR-3 (workflow) |
 | `data/calendar/<YYYY-YYYY>.json` | Hand-maintained academic calendar, one per academic year | FR-6 |
 | `lib/data/` | Contract schema, types, campus table | FR-1 |
 | `lib/free-rooms/` | Pure free-room logic | FR-4 |
@@ -160,9 +160,26 @@ Size budget: about 2–3 MB minified. FR-2 warns if the file is over 5 MB.
 | FR-4 | Free-room logic library | FR-1 | `lib/free-rooms/**` |
 | FR-2 | Banner fetch script | FR-1, FR-6 | `scripts/fetch-data/**` |
 | FR-5 | UI | FR-1, FR-4 | `app/page.tsx`, `components/free-rooms/**` |
-| FR-3 | Nightly workflow + README | FR-2 | `.github/workflows/nightly-data.yml`, `README.md` |
+| FR-3 | Weekly data workflow + README (file still named `nightly-data.yml`) | FR-2 | `.github/workflows/nightly-data.yml`, `README.md` |
 | FR-7 | Deploy script draft (human installs it) | FR-3 | `docs/deploy-drafts/deploy.sh` |
 | FR-2b | Fetch hardening: placeholder rooms, guard fixes | FR-2 (merged) | `scripts/fetch-data/**`, which passes from FR-2 to FR-2b now that FR-2 is merged. Only one active owner at a time. |
+| FR-8 | Weekly schedule (user decision 2026-11-11) | FR-3, FR-4, FR-2b merged | `.github/workflows/nightly-data.yml`, `README.md`, `lib/free-rooms/time.ts`, `lib/free-rooms/time.test.ts`, `scripts/fetch-data/write.ts`, `scripts/fetch-data/write.test.ts`. These pass from FR-3, FR-4 and FR-2b to FR-8 once those are merged. Only one active owner at a time. |
+
+### FR-8 — Weekly schedule
+- **Decided by:** the user, 2026-11-11.
+- **Thresholds:** the manager's recommendation, which the user can override.
+- **Change:**
+  - The cron goes from `0 8 * * *` to `0 8 * * 1` (Mondays 08:00 UTC). `workflow_dispatch` is unchanged.
+  - `STALE_AFTER_MS` goes from 72 h to **192 h** (`lib/free-rooms/time.ts`).
+  - `HEARTBEAT_MS` goes from 48 h to **144 h** (`scripts/fetch-data/write.ts`).
+  - Each threshold stays a single named constant in its module.
+  - The workflow file name and the `nightly-data` concurrency group stay as they are (historical names).
+  - The commit message wording becomes `data: weekly schedule update (YYYY-MM-DD)`.
+  - The README gets the "Weekly update" section and the switch-back-to-nightly instructions from FR-3.
+- **Acceptance criteria:** FR-3 AC1 (cron) and AC8 (README), FR-2 AC8 (143 h / 145 h), FR-4 AC12 (192 h / +1 min), and FR-5 AC11 (191 h / 193 h / 215 h / 216 h), plus:
+  - `grep -rnE "(72|48) \* 60" lib/free-rooms scripts/fetch-data` prints nothing.
+  - `npm run check` passes.
+- **Component tests:** no FR-5 component test exists yet (`components/free-rooms/` isn't built), so FR-8 owns none. FR-5 builds against the 192 h value and must not hard-code it; it takes it from `isStale`. If FR-5 merges before FR-8, any FR-5 test that pins 72 h joins FR-8's owned files.
 
 Waves: **1:** FR-1 → **2:** FR-4 and FR-6 in parallel → **3:** FR-2 and FR-5 in parallel → **4:** FR-3 → **5:** FR-7.
 
@@ -190,4 +207,4 @@ Rules that keep ownership clean:
 2. Exam periods: **DECIDED by user 2026-11-09:** only part `"1"` in the main period, and `"1L"` in the Law window.
 3. Repo visibility: **DECIDED by user 2026-11-09: `nwhee/FreeRooms` is public**, so raw.githubusercontent.com serves the data with no auth and with permissive CORS.
 4. In time-travel mode, when the user switches campus, does the picked time stay as the same wall-clock time or the same instant? **The same wall-clock date and time, read in the new campus's zone.**
-5. raw.githubusercontent.com caches for about 5 minutes. Is that acceptable? **Yes.** The data changes nightly.
+5. raw.githubusercontent.com caches for about 5 minutes. Is that acceptable? **Yes.** The data changes at most weekly.
