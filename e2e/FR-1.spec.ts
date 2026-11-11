@@ -1,6 +1,8 @@
+import { spawnSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
 
-// FR-1 has no pages yet: every route renders the root layout plus Next's 404.
+// FR-1 scaffold checks: the root layout, theme tokens, and the gitignored data file.
+// The home page's own states are covered by e2e/FR-5.spec.ts and e2e/V1-real-data.spec.ts.
 // Run against a local build: `npm run build && npm run start -- -p 3100`,
 // then `PLAYWRIGHT_BASE_URL=http://localhost:3100 npx playwright test e2e/FR-1.spec.ts`.
 
@@ -34,20 +36,20 @@ async function contrast(page: Page, fgVar: string, bgVar: string): Promise<numbe
 
 test.describe("FR-1", () => {
   for (const [label, width] of [["desktop", 1280], ["phone", 390]] as const) {
-    test(`AC5 the build serves the root layout with a 404 at / until FR-5 (${label})`, async ({ page }) => {
+    test(`AC5 the build serves / with the root layout and no horizontal scroll (${label})`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       const response = await page.goto("/");
-      expect(response?.status()).toBe(404);
-      await expect(page).toHaveTitle(/404|FreeRooms/);
-      await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+      expect(response?.status()).toBe(200);
       await expect(page.locator("html")).toHaveAttribute("lang", "en");
+      await expect(page.getByRole("heading", { name: "FreeRooms", level: 1 })).toBeVisible();
       const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       expect(scrollWidth).toBeLessThanOrEqual(width);
     });
   }
 
-  test("AC5b the gitignored local data file is not served when absent", async ({ request }) => {
-    expect((await request.get("/data/schedule.json")).status()).toBe(404);
+  test("AC5b public/data/schedule.json is gitignored", () => {
+    const result = spawnSync("git", ["check-ignore", "-q", "public/data/schedule.json"]);
+    expect(result.status).toBe(0);
   });
 
   test("AC11 --input and --ring reach 3:1 against --background in light mode", async ({ page }) => {
