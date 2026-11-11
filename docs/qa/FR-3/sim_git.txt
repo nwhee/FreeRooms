@@ -1,0 +1,301 @@
+
+===== A first run, no data branch (bootstrap)
+   [before] main=05b45b81 data=(none)
+   [fetch] Seed the current schedule from the data branch: exit 0 No data branch yet (first run); skipping the seed. 
+   [fetch] Fetch data from Banner: exit 0 Wrote public/data/schedule.json 
+   [fetch] Compare with the seeded copy: exit 0 schedule.json changed (or the data branch is missing); it will be published. 
+   [fetch] Read calendar warnings: exit 0 Calendar warnings: 1 
+   fetch job ok=True outputs={'data_branch': 'missing', 'changed': 'true', 'count': '1'}
+   [publish] exit 0
+      No data branch yet; creating it as an orphan branch.
+      HEAD is now at 05b45b8 main-init
+      [data (root-commit) 721d441] data: nightly schedule update (2026-11-10)
+       1 file changed, 1 insertion(+)
+       create mode 100644 schedule.json
+      Preparing worktree (detached HEAD 05b45b8)
+      Previous HEAD position was 05b45b8 main-init
+      Switched to a new branch 'data'
+      To file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/A.git
+       * [new branch]      data -> data
+   publish job ran=True ok=True
+   [after] main=05b45b81 data=721d4413
+      ls-tree data: schedule.json
+      log data: 721d441 |github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>|data: nightly schedule update (2026-11-10)
+      date check: TZ=America/New_York date +%F -> 2026-11-10 | UTC date -> 2026-11-10
+
+===== B data exists, fetch prints 'No change; not writing.'
+   [before] main=1d43f68b data=0c5294e1
+      ls-tree data: schedule.json
+      log data: 0c5294e |t <t@x>|seed data
+   [fetch] Seed the current schedule from the data branch: exit 0 Seeded public/data/schedule.json from origin/data. From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/B
+ * [new branch]      
+   [fetch] Fetch data from Banner: exit 0 No change; not writing. 
+   [fetch] Compare with the seeded copy: exit 0 schedule.json is unchanged; nothing to publish. 
+   [fetch] Read calendar warnings: exit 0 Calendar warnings: 0 
+   fetch job ok=True outputs={'data_branch': 'present', 'changed': 'false', 'count': '0'}
+   publish job ran=False ok=None
+   [after] main=1d43f68b data=0c5294e1
+      ls-tree data: schedule.json
+      log data: 0c5294e |t <t@x>|seed data
+
+===== C data exists, file changed
+   [before] main=1d43f68b data=0c5294e1
+      ls-tree data: schedule.json
+      log data: 0c5294e |t <t@x>|seed data
+   [fetch] Seed the current schedule from the data branch: exit 0 Seeded public/data/schedule.json from origin/data. From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/C
+ * [new branch]      
+   [fetch] Fetch data from Banner: exit 0 Wrote public/data/schedule.json 
+   [fetch] Compare with the seeded copy: exit 0 schedule.json changed (or the data branch is missing); it will be published. 
+   [fetch] Read calendar warnings: exit 0 Calendar warnings: 1 
+   fetch job ok=True outputs={'data_branch': 'present', 'changed': 'true', 'count': '1'}
+   [publish] exit 0
+      HEAD is now at 0c5294e seed data
+      [data a778460] data: nightly schedule update (2026-11-10)
+       1 file changed, 1 insertion(+), 1 deletion(-)
+      From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/C
+       * [new branch]      data       -> origin/data
+      Preparing worktree (new branch 'data')
+      To file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/C.git
+         0c5294e..a778460  data -> data
+   publish job ran=True ok=True
+   [after] main=1d43f68b data=a7784609
+      ls-tree data: schedule.json
+      log data: a778460 0c5294e|github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>|data: nightly schedule update (2026-11-10)
+                0c5294e |t <t@x>|seed data
+
+===== D fetch exits 1
+   [before] main=ce99bc09 data=77287f72
+      ls-tree data: schedule.json
+      log data: 77287f7 |t <t@x>|seed data
+   [fetch] Seed the current schedule from the data branch: exit 0 Seeded public/data/schedule.json from origin/data. From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/D
+ * [new branch]      
+   [fetch] Fetch data from Banner: exit 1  Run failed: Banner 503
+   fetch job ok=False outputs={'data_branch': 'present'}
+   publish job ran=False ok=None
+   [after] main=ce99bc09 data=77287f72
+      ls-tree data: schedule.json
+      log data: 77287f7 |t <t@x>|seed data
+
+===== E push rejected once (non-conflicting racer) -> rebase + retry
+   [before] main=ce99bc09 data=77287f72
+      ls-tree data: schedule.json
+      log data: 77287f7 |t <t@x>|seed data
+   [fetch] Seed the current schedule from the data branch: exit 0 Seeded public/data/schedule.json from origin/data. From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/E
+ * [new branch]      
+   [fetch] Fetch data from Banner: exit 0 Wrote public/data/schedule.json 
+   [fetch] Compare with the seeded copy: exit 0 schedule.json changed (or the data branch is missing); it will be published. 
+   [fetch] Read calendar warnings: exit 0 Calendar warnings: 1 
+   fetch job ok=True outputs={'data_branch': 'present', 'changed': 'true', 'count': '1'}
+   [publish] exit 0
+      HEAD is now at 77287f7 seed data
+      [data 91aff71] data: nightly schedule update (2026-11-10)
+       1 file changed, 1 insertion(+), 1 deletion(-)
+      Push rejected; rebasing onto origin/data and retrying once.
+      From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/E
+       * [new branch]      data       -> origin/data
+      Preparing worktree (new branch 'data')
+      To file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/E.git
+       ! [rejected]        data -> data (fetch first)
+      error: failed to push some refs to 'file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/E.git'
+      hint: Updates were rejected because the remote contains work that you do not
+      hint: have locally. This is usually caused by another repository pushing to
+      hint: the same ref. If you want to integrate the remote changes, use
+      hint: 'git pull' before pushing again.
+      hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+      From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/E
+       * branch            data       -> FETCH_HEAD
+      Rebasing (1/1)
+      
+                                                                                      
+      Successfully rebased and updated refs/heads/data.
+      To file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/E.git
+         63bce6c..9e56d65  data -> data
+   publish job ran=True ok=True
+   [after] main=ce99bc09 data=9e56d65d
+      ls-tree data: OTHER, schedule.json
+      log data: 9e56d65 63bce6c|github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>|data: nightly schedule update (2026-11-10)
+                63bce6c 77287f7|r <r@x>|racer
+                77287f7 |t <t@x>|seed data
+
+===== F push rejected once (racer rewrote schedule.json) -> rebase conflict
+   [before] main=6ab82518 data=38be74d1
+      ls-tree data: schedule.json
+      log data: 38be74d |t <t@x>|seed data
+   [fetch] Seed the current schedule from the data branch: exit 0 Seeded public/data/schedule.json from origin/data. From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/F
+ * [new branch]      
+   [fetch] Fetch data from Banner: exit 0 Wrote public/data/schedule.json 
+   [fetch] Compare with the seeded copy: exit 0 schedule.json changed (or the data branch is missing); it will be published. 
+   [fetch] Read calendar warnings: exit 0 Calendar warnings: 1 
+   fetch job ok=True outputs={'data_branch': 'present', 'changed': 'true', 'count': '1'}
+   [publish] exit 1
+      HEAD is now at 38be74d seed data
+      [data aba0e6c] data: nightly schedule update (2026-11-10)
+       1 file changed, 1 insertion(+), 1 deletion(-)
+      Push rejected; rebasing onto origin/data and retrying once.
+      Auto-merging schedule.json
+      CONFLICT (content): Merge conflict in schedule.json
+      From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/F
+       * [new branch]      data       -> origin/data
+      Preparing worktree (new branch 'data')
+      To file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/F.git
+       ! [rejected]        data -> data (fetch first)
+      error: failed to push some refs to 'file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/F.git'
+      hint: Updates were rejected because the remote contains work that you do not
+      hint: have locally. This is usually caused by another repository pushing to
+      hint: the same ref. If you want to integrate the remote changes, use
+      hint: 'git pull' before pushing again.
+      hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+      From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/F
+       * branch            data       -> FETCH_HEAD
+      Rebasing (1/1)
+      error: could not apply aba0e6c... data: nightly schedule update (2026-11-10)
+      hint: Resolve all conflicts manually, mark them as resolved with
+      hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
+      hint: You can instead skip this commit: run "git rebase --skip".
+      hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
+      Could not apply aba0e6c... data: nightly schedule update (2026-11-10)
+   publish job ran=True ok=False
+   [after] main=6ab82518 data=337e9786
+      ls-tree data: schedule.json
+      log data: 337e978 38be74d|r <r@x>|racer
+                38be74d |t <t@x>|seed data
+
+===== G push rejected on both attempts -> job fails after one retry
+   [before] main=6816ba52 data=0624126d
+      ls-tree data: schedule.json
+      log data: 0624126 |t <t@x>|seed data
+   [fetch] Seed the current schedule from the data branch: exit 0 Seeded public/data/schedule.json from origin/data. From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G
+ * [new branch]      
+   [fetch] Fetch data from Banner: exit 0 Wrote public/data/schedule.json 
+   [fetch] Compare with the seeded copy: exit 0 schedule.json changed (or the data branch is missing); it will be published. 
+   [fetch] Read calendar warnings: exit 0 Calendar warnings: 1 
+   fetch job ok=True outputs={'data_branch': 'present', 'changed': 'true', 'count': '1'}
+   [publish] exit 1
+      HEAD is now at 0624126 seed data
+      [data 375b61c] data: nightly schedule update (2026-11-10)
+       1 file changed, 1 insertion(+), 1 deletion(-)
+      Push rejected; rebasing onto origin/data and retrying once.
+      Auto-merging schedule.json
+      CONFLICT (content): Merge conflict in schedule.json
+      From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G
+       * [new branch]      data       -> origin/data
+      Preparing worktree (new branch 'data')
+      To file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G.git
+       ! [rejected]        data -> data (fetch first)
+      error: failed to push some refs to 'file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G.git'
+      hint: Updates were rejected because the remote contains work that you do not
+      hint: have locally. This is usually caused by another repository pushing to
+      hint: the same ref. If you want to integrate the remote changes, use
+      hint: 'git pull' before pushing again.
+      hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+      From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G
+       * branch            data       -> FETCH_HEAD
+      Rebasing (1/1)
+      error: could not apply 375b61c... data: nightly schedule update (2026-11-10)
+      hint: Resolve all conflicts manually, mark them as resolved with
+      hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
+      hint: You can instead skip this commit: run "git rebase --skip".
+      hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
+      Could not apply 375b61c... data: nightly schedule update (2026-11-10)
+   publish job ran=True ok=False
+   [after] main=6816ba52 data=689c3e11
+      ls-tree data: schedule.json
+      log data: 689c3e1 0624126|r <r@x>|racer
+                0624126 |t <t@x>|seed data
+
+===== G2 push rejected on both attempts, rebase clean -> job fails after exactly one retry
+   [before] main=a48a7d43 data=8cccbd8a
+      ls-tree data: schedule.json
+      log data: 8cccbd8 |t <t@x>|seed data
+   [fetch] Seed the current schedule from the data branch: exit 0 Seeded public/data/schedule.json from origin/data. From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G2
+ * [new branch]     
+   [fetch] Fetch data from Banner: exit 0 Wrote public/data/schedule.json 
+   [fetch] Compare with the seeded copy: exit 0 schedule.json changed (or the data branch is missing); it will be published. 
+   [fetch] Read calendar warnings: exit 0 Calendar warnings: 1 
+   fetch job ok=True outputs={'data_branch': 'present', 'changed': 'true', 'count': '1'}
+   [publish] exit 1
+      HEAD is now at 8cccbd8 seed data
+      [data b1c3d93] data: nightly schedule update (2026-11-10)
+       1 file changed, 1 insertion(+), 1 deletion(-)
+      Push rejected; rebasing onto origin/data and retrying once.
+      From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G2
+       * [new branch]      data       -> origin/data
+      Preparing worktree (new branch 'data')
+      To file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G2.git
+       ! [rejected]        data -> data (fetch first)
+      error: failed to push some refs to 'file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G2.git'
+      hint: Updates were rejected because the remote contains work that you do not
+      hint: have locally. This is usually caused by another repository pushing to
+      hint: the same ref. If you want to integrate the remote changes, use
+      hint: 'git pull' before pushing again.
+      hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+      From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G2
+       * branch            data       -> FETCH_HEAD
+      Rebasing (1/1)
+      
+                                                                                      
+      Successfully rebased and updated refs/heads/data.
+      To file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G2.git
+       ! [rejected]        data -> data (fetch first)
+      error: failed to push some refs to 'file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/G2.git'
+      hint: Updates were rejected because the remote contains work that you do not
+      hint: have locally. This is usually caused by another repository pushing to
+      hint: the same ref. If you want to integrate the remote changes, use
+      hint: 'git pull' before pushing again.
+      hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+   publish job ran=True ok=False
+   [after] main=a48a7d43 data=eb25e6b5
+      ls-tree data: OTHER, schedule.json
+      log data: eb25e6b 3045f81|r <r@x>|racer
+                3045f81 8cccbd8|r <r@x>|racer
+                8cccbd8 |t <t@x>|seed data
+
+===== H1 bootstrap
+   [before] main=b95cf497 data=(none)
+   [fetch] Seed the current schedule from the data branch: exit 0 No data branch yet (first run); skipping the seed. 
+   [fetch] Fetch data from Banner: exit 0 Wrote public/data/schedule.json 
+   [fetch] Compare with the seeded copy: exit 0 schedule.json changed (or the data branch is missing); it will be published. 
+   [fetch] Read calendar warnings: exit 0 Calendar warnings: 1 
+   fetch job ok=True outputs={'data_branch': 'missing', 'changed': 'true', 'count': '1'}
+   [publish] exit 0
+      No data branch yet; creating it as an orphan branch.
+      HEAD is now at b95cf49 main-init
+      [data (root-commit) c49c85e] data: nightly schedule update (2026-11-10)
+       1 file changed, 1 insertion(+)
+       create mode 100644 schedule.json
+      Preparing worktree (detached HEAD b95cf49)
+      Previous HEAD position was b95cf49 main-init
+      Switched to a new branch 'data'
+      To file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/H.git
+       * [new branch]      data -> data
+   publish job ran=True ok=True
+   [after] main=b95cf497 data=c49c85e4
+      ls-tree data: schedule.json
+      log data: c49c85e |github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>|data: nightly schedule update (2026-11-10)
+
+===== H2 next night, no change
+   [before] main=b95cf497 data=c49c85e4
+      ls-tree data: schedule.json
+      log data: c49c85e |github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>|data: nightly schedule update (2026-11-10)
+   [fetch] Seed the current schedule from the data branch: exit 0 Seeded public/data/schedule.json from origin/data. From file:///private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/fr3sim-lwyhb6ze/H
+ * [new branch]      
+   [fetch] Fetch data from Banner: exit 0 No change; not writing. 
+   [fetch] Compare with the seeded copy: exit 0 schedule.json is unchanged; nothing to publish. 
+   [fetch] Read calendar warnings: exit 0 Calendar warnings: 1 
+   fetch job ok=True outputs={'data_branch': 'present', 'changed': 'false', 'count': '1'}
+   publish job ran=False ok=None
+   [after] main=b95cf497 data=c49c85e4
+      ls-tree data: schedule.json
+      log data: c49c85e |github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>|data: nightly schedule update (2026-11-10)
+
+===== SUMMARY (title | fetch_ok | publish_ran | publish_ok | main_unchanged | data_moved)
+   A first run, no data branch (bootstrap) | True | True | True | True | True
+   B data exists, fetch prints 'No change; not writing.' | True | False | None | True | False
+   C data exists, file changed | True | True | True | True | True
+   D fetch exits 1 | False | False | None | True | False
+   E push rejected once (non-conflicting racer) -> rebase + retry | True | True | True | True | True
+   F push rejected once (racer rewrote schedule.json) -> rebase conflict | True | True | False | True | True
+   G push rejected on both attempts -> job fails after one retry | True | True | False | True | True
+   G2 push rejected on both attempts, rebase clean -> job fails after exactly one retry | True | True | False | True | True
+   H1 bootstrap | True | True | True | True | True
+   H2 next night, no change | True | False | None | True | False

@@ -1,0 +1,4 @@
+f3d57f9 Merge branch 'fr-3-nightly'
+39b93fe CAL-1: build AC3 calendar block from the 2026-2027 source only
+1c0a4c8 CAL-1: find 2026-2027 calendar by academicYear, assert unique termYears instead of file count
+c43eed1 FR-3: README and one-line publish input for the nightly workflow

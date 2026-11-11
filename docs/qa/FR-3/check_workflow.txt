@@ -1,0 +1,48 @@
+PASS triggers are exactly schedule + workflow_dispatch
+PASS cron 0 8 * * *
+PASS publish input boolean default true
+PASS workflow-level permissions empty
+PASS concurrency
+PASS fetch: timeout-minutes=30
+PASS fetch[0] no continue-on-error
+PASS fetch[0] pinned: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+PASS fetch[1] no continue-on-error
+PASS fetch[1] pinned: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+PASS fetch[2] no continue-on-error
+PASS fetch[2] bash -n ok: Install dependencies 
+PASS fetch[2] no expressions interpolated into run
+PASS fetch[3] no continue-on-error
+PASS fetch[3] bash -n ok: Seed the current schedule from the data branch 
+PASS fetch[3] no expressions interpolated into run
+PASS fetch[4] no continue-on-error
+PASS fetch[4] bash -n ok: Fetch data from Banner 
+PASS fetch[4] no expressions interpolated into run
+PASS fetch[5] no continue-on-error
+PASS fetch[5] bash -n ok: Compare with the seeded copy 
+PASS fetch[5] no expressions interpolated into run
+PASS fetch[6] no continue-on-error
+PASS fetch[6] bash -n ok: Read calendar warnings 
+PASS fetch[6] no expressions interpolated into run
+PASS fetch[7] no continue-on-error
+PASS fetch[7] bash -n ok: Test run (publish false) - print what would be written 
+PASS fetch[7] no expressions interpolated into run
+PASS fetch[8] no continue-on-error
+PASS fetch[8] pinned: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+PASS publish: timeout-minutes=10
+PASS publish[0] no continue-on-error
+PASS publish[0] pinned: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+PASS publish[1] no continue-on-error
+PASS publish[1] pinned: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+PASS publish[2] no continue-on-error
+PASS publish[2] bash -n ok: Commit schedule.json to the data branch 
+PASS publish[2] no expressions interpolated into run
+PASS calendar-issue: timeout-minutes=10
+PASS calendar-issue[0] no continue-on-error
+PASS calendar-issue[0] bash -n ok: Open, update or close the calendar-missing issue 
+PASS calendar-issue[0] no expressions interpolated into run
+PASS permission union {'contents': {'read', 'write'}, 'issues': {'write'}}
+PASS fetch step is plain `npm run fetch-data`, unguarded
+PASS publish needs fetch and if: uses inputs.publish
+PASS calendar-issue needs fetch and if: uses inputs.publish
+ALL OK
+exit 0

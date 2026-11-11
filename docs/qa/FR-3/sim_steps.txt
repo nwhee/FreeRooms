@@ -1,0 +1,56 @@
+===== two calendar warnings
+exit 0 Calendar warnings: 2
+ 
+--- GITHUB_OUTPUT:
+count=2
+body<<EOF_190d9a3a3f2133ab42d7074ebfb359c3
+The nightly data run found terms with no academic calendar file, so no-class days and exam periods are missing for them:
+
+- Term 202710 has no academic calendar file (expected data/calendar/2026-2027.json); no-class days and exam periods will be missing.
+- Term 202730 has no academic calendar file (expected data/calendar/2026-2027.json); no-class days and exam periods will be missing.
+
+Fix: add the missing `data/calendar/<YYYY-YYYY>.json` from the registrar PDF (see "Yearly chore" in the README). This issue closes itself on the first run without the warning.
+
+Last updated by run https://github.com/nwhee/FreeRooms/actions/runs/123.
+EOF_190d9a3a3f2133ab42d7074ebfb359c3
+
+--- test-run step exit 0 
+publish is false: skipping the push to the data branch (changed=false) and the calendar issue.
+Calendar warnings (2):
+Term 202710 has no academic calendar file (expected data/calendar/2026-2027.json); no-class days and exam periods will be missing.
+Term 202730 has no academic calendar file (expected data/calendar/2026-2027.json); no-class days and exam periods will be missing.
+Would open or update the 'calendar-missing' issue with this body:
+----
+The nightly data run found terms with no academic calendar file, so no-class days and exam periods are missing for them:
+
+- Term 202710 has no academic calendar file (expected data/calendar/2026-2027.json); no-class days and exam periods will be missing.
+- Term 202730 has no academic calendar file (expected data/calendar/2026-2027.json); no-class days and exam periods will be missing.
+
+Fix: add the missing `data/calendar/<YYYY-YYYY>.json` from the registrar PDF (see "Yearly chore" in the README). This issue closes itself on the first run without the warning.
+
+Last updated by run https://github.com/nwhee/FreeRooms/actions/runs/123.
+----
+
+===== no calendar warnings
+exit 0 Calendar warnings: 0
+ 
+--- GITHUB_OUTPUT:
+count=0
+body<<EOF_cf459f6f389b11586cb77395841fb2f6
+The nightly data run found terms with no academic calendar file, so no-class days and exam periods are missing for them:
+
+
+Fix: add the missing `data/calendar/<YYYY-YYYY>.json` from the registrar PDF (see "Yearly chore" in the README). This issue closes itself on the first run without the warning.
+
+Last updated by run https://github.com/nwhee/FreeRooms/actions/runs/123.
+EOF_cf459f6f389b11586cb77395841fb2f6
+
+--- test-run step exit 0 
+publish is false: skipping the push to the data branch (changed=false) and the calendar issue.
+Calendar warnings (0):
+Would close the open 'calendar-missing' issue, if there is one.
+
+===== compare step
+unchanged exit 0 changed=false 
+changed exit 0 changed=true 
+branch missing exit 0 changed=true 
