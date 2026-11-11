@@ -65,7 +65,8 @@ NEXT_PUBLIC_DATA_URL=https://raw.githubusercontent.com/nwhee/FreeRooms/data/sche
 > (`https://nubanner.neu.edu/robots.txt`) and Northeastern's acceptable-use policy for
 > IT resources, and make sure a nightly automated read of the public class search is
 > allowed. **Pushing `.github/workflows/nightly-data.yml` to `main` on GitHub starts the
-> nightly runs.** There's no separate switch, so do the check first. To pause it later,
+> nightly runs.** There's no separate switch, so do the check first, and record the
+> result in `docs/qa/FR-3/` (see [Production](#production)). To pause it later,
 > use **Actions → nightly-data → ⋯ → Disable workflow**.
 
 **When it runs:** every day at 08:00 UTC (03:00 EST / 04:00 EDT), from
@@ -198,11 +199,18 @@ it doesn't know about holidays or finals for that term.
   a human must redeploy through `scripts/deploy/deploy.sh`.** A build without it prints a
   loud `WARNING: NEXT_PUBLIC_DATA_URL is not set`, and the site would then look for a
   local `/data/schedule.json` that doesn't exist in production.
-- **Bootstrap order:** run the workflow once by hand with `publish` ticked, so the
-  `data` branch exists. Check that the raw URL above serves the file, then set the env
-  var and redeploy.
-- **Testing workflow changes:** use **Run workflow** with **`publish` unticked**, so the
-  test never changes production data.
+- **Before pushing the workflow to `main` on GitHub:** check Banner's `robots.txt`
+  (`https://nubanner.neu.edu/robots.txt`) and Northeastern's acceptable-use policy for IT
+  resources. Pushing `.github/workflows/nightly-data.yml` to `main` starts the nightly
+  runs, so this check comes first. Record the result (date, what you checked, the
+  outcome) in `docs/qa/FR-3/`.
+- **Bootstrap order:** run the workflow once by hand **from `main`** with `publish`
+  ticked, so the `data` branch exists. From any other branch it's a test run and creates
+  no `data` branch. Check that the raw URL above serves the file, then set the env var
+  and redeploy.
+- **Testing workflow changes:** use **Run workflow** with **`publish` unticked**, **or**
+  run it from a branch other than `main`. Either way the test never changes production
+  data.
 
 ## Data contract
 
