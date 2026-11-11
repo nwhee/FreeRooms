@@ -9,7 +9,7 @@ scheduled at the time you chose (now by default), and how long each one stays fr
   (`nubanner.neu.edu/StudentRegistrationSsb`), read without logging in. Only
   **class meetings** are covered. Events, club bookings and exams outside the class
   schedule are not, so a room shown as free may still be booked.
-- **How it works:** a nightly GitHub Actions job turns Banner's class search into one
+- **How it works:** a weekly GitHub Actions job turns Banner's class search into one
   static file, `schedule.json`. The Next.js UI downloads that file and works out the
   free rooms in the browser. There's no database and no server-side API.
 - **Coverage:** every campus with rooms, Boston first. CPS and Law classes are included
@@ -59,30 +59,35 @@ To drop a new kind, add a case-insensitive regex to its `roomPatterns` array (fo
 NEXT_PUBLIC_DATA_URL=https://raw.githubusercontent.com/nwhee/FreeRooms/data/schedule.json
 ```
 
-## Nightly update
+## Weekly update
 
 > **Before you push this workflow to `main` on GitHub:** check Banner's `robots.txt`
 > (`https://nubanner.neu.edu/robots.txt`) and Northeastern's acceptable-use policy for
-> IT resources, and make sure a nightly automated read of the public class search is
+> IT resources, and make sure a weekly automated read of the public class search is
 > allowed. **Pushing `.github/workflows/nightly-data.yml` to `main` on GitHub starts the
-> nightly runs.** There's no separate switch, so do the check first, and record the
+> weekly runs.** There's no separate switch, so do the check first, and record the
 > result in `docs/qa/FR-3/` (see [Production](#production)). To pause it later,
 > use **Actions → nightly-data → ⋯ → Disable workflow**.
 
-**When it runs:** every day at 08:00 UTC (03:00 EST / 04:00 EDT), from
+**When it runs:** once a week, on Mondays at 08:00 UTC (03:00 EST / 04:00 EDT), from
 `.github/workflows/nightly-data.yml`. One run at a time: an overlapping run waits in a
 queue, and nothing gets cancelled.
 
+**Why it's still called `nightly-data`:** the job ran every night until 2026-11-11 (FR-8).
+The file name `nightly-data.yml`, the Actions name `nightly-data` and its concurrency
+group are historical names, kept so links, run history and the re-enable path below
+don't break. The schedule is weekly.
+
 **What it does:**
 
-1. Checks out the triggering ref (`main` for the nightly run) and runs `npm ci`.
+1. Checks out the triggering ref (`main` for the scheduled run) and runs `npm ci`.
 2. Copies the current `schedule.json` from the `data` branch into
    `public/data/schedule.json`, so the fetch script can compare against it. On the very
    first run there's no `data` branch yet, and this step is skipped.
 3. Runs `npm run fetch-data`.
 4. If the file changed (or the `data` branch doesn't exist yet), commits `schedule.json`
    to the **`data` branch** as `github-actions[bot]`, with the message
-   `data: nightly schedule update (YYYY-MM-DD)`. The workflow never pushes to `main`
+   `data: weekly schedule update (YYYY-MM-DD)`. The workflow never pushes to `main`
    and never deploys.
 5. Opens, updates or closes the `calendar-missing` issue (see
    [Yearly chore](#yearly-chore)).
@@ -103,12 +108,13 @@ https://raw.githubusercontent.com/nwhee/FreeRooms/data/schedule.json
 reaches users within about 5 minutes (GitHub's raw cache), with no deploy.
 
 **Write rule:** the fetch script rewrites the file only when the content (everything
-except `generatedAt`) really changed, **or** when the existing file is at least 48 hours
-old. That 48 h heartbeat keeps the file fresh while the job is healthy. When nothing
-changed, the log says `No change; not writing.`, the job ends green, and there's no
+except `generatedAt`) really changed, **or** when the existing file is at least 24 hours
+old (`HEARTBEAT_MS`). The heartbeat is shorter than a week, so every healthy weekly run
+rewrites the file, and `generatedAt` is never much more than 7 days old while the job
+works. When nothing changed (for example a second run by hand on the same day), the log says `No change; not writing.`, the job ends green, and there's no
 commit.
 
-**Why a failure leaves yesterday's data in place:** if Banner is down, returns a partial
+**Why a failure leaves last week's data in place:** if Banner is down, returns a partial
 term, or the output fails validation, the fetch exits 1. The job goes red (GitHub emails
 the repo owner), and the publish and issue jobs don't run. The `data` branch keeps the
 last good `schedule.json`, so the site keeps working on slightly old data instead of
@@ -117,14 +123,15 @@ still in progress coming back empty (vanished term), or a term's rooms dropping 
 of the previous count. The workflow has no `--force` option on purpose. A human checks
 Banner and decides.
 
-**Stale banner:** the UI shows a warning when `generatedAt` is more than 3 days (72 h)
-old. With the 48 h heartbeat, it only appears when nightly runs have been failing for
-about a day or more, so a red run should be fixed within a day or two.
+**Stale banner:** the UI shows a warning when `generatedAt` is more than 15 days (360 h)
+old (`STALE_AFTER_MS`). One missed or failed week leaves the file about 14 days old, so
+there's no banner. Two missed weeks in a row show the banner from day 15. Fix a red run
+before the next Monday, or run it by hand once it's fixed.
 
 **Running it by hand:** **Actions → nightly-data → Run workflow**, pick a branch, then:
 
 - **`publish` ticked** (the default) **on `main`:** a real run. It pushes to `data` and
-  updates the issue, exactly like the nightly run.
+  updates the issue, exactly like the scheduled run.
 - **`publish` unticked, or any branch other than `main`:** a test run. It fetches and
   checks everything, but it doesn't push to `data` and doesn't touch issues. Only `main`
   can publish. A test run prints the calendar warnings and the issue body it would have
@@ -135,6 +142,26 @@ repo after 60 days with no repository activity. It emails the owner first. Commi
 the `data` branch may not count as activity, so don't rely on them. To turn the workflow
 back on, go to **Actions → nightly-data** and click **"Enable workflow"** in the banner.
 Then run it once by hand (above) to refresh the data straight away.
+
+### Switch back to nightly
+
+To go back to a nightly schedule, change these three values together, in one commit:
+
+1. The cron in `.github/workflows/nightly-data.yml`: `"0 8 * * 1"` → `"0 8 * * *"`.
+2. `HEARTBEAT_MS` in `scripts/fetch-data/write.ts`: 24 h → 48 h.
+3. `STALE_AFTER_MS` in `lib/free-rooms/time.ts`: 360 h (15 days) → 72 h (3 days).
+
+Then update the tests that pin them:
+
+- `lib/free-rooms/time.test.ts`: the `isStale` boundaries (72 h false, 72 h + 1 min true).
+- `scripts/fetch-data/write.test.ts`: the `shouldWrite` heartbeat (47 h not rewritten,
+  49 h rewritten).
+- `components/free-rooms/free-rooms-app.test.tsx`: the stale-banner hours (71 h none,
+  73 h and 95 h "3 days ago", 96 h "4 days ago").
+- `e2e/FR-5.spec.ts` and `e2e/V1-real-data.spec.ts`: the stale-banner boundaries.
+
+Finally, change "weekly" back to "nightly" in this README and in the workflow's header
+comment, issue body and commit message.
 
 ## Semester switch
 
@@ -173,7 +200,7 @@ show classes that aren't meeting.
 3. Run `npm run check`, which loads and validates every file in `data/calendar/`, then
    merge to `main`.
 
-**You'll be reminded.** When a fetched term has no calendar file, the nightly run opens
+**You'll be reminded.** When a fetched term has no calendar file, the weekly run opens
 a GitHub issue titled **Academic calendar file missing** (label `calendar-missing`),
 listing the terms and the file it expected. Later runs update that issue, and the first
 run after you add the file closes it automatically. Until then the site still works, but
@@ -184,7 +211,7 @@ it doesn't know about holidays or finals for that term.
 - **Agents never deploy.** Code changes ship only through the scripts in
   `scripts/deploy/`, and a human runs them. The deploy script, `scripts/deploy/deploy.sh`,
   is drafted in FR-7 (`docs/deploy-drafts/deploy.sh`), and a human installs it.
-- **Data refreshes don't need a deploy.** The nightly job only updates the `data`
+- **Data refreshes don't need a deploy.** The weekly job only updates the `data`
   branch, and the live site reads it at runtime.
 - **One-time setup (a human does this):** in the Vercel project settings, set
 
@@ -201,7 +228,7 @@ it doesn't know about holidays or finals for that term.
   local `/data/schedule.json` that doesn't exist in production.
 - **Before pushing the workflow to `main` on GitHub:** check Banner's `robots.txt`
   (`https://nubanner.neu.edu/robots.txt`) and Northeastern's acceptable-use policy for IT
-  resources. Pushing `.github/workflows/nightly-data.yml` to `main` starts the nightly
+  resources. Pushing `.github/workflows/nightly-data.yml` to `main` starts the weekly
   runs, so this check comes first. Record the result (date, what you checked, the
   outcome) in `docs/qa/FR-3/`.
 - **Bootstrap order:** run the workflow once by hand **from `main`** with `publish`
