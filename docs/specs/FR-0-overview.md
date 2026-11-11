@@ -168,7 +168,7 @@ Size budget: about 2–3 MB minified. FR-2 warns if the file is over 5 MB.
 | FR-3 | Weekly data workflow + README (file still named `nightly-data.yml`) | FR-2 | `.github/workflows/nightly-data.yml`, `README.md` |
 | FR-7 | Deploy script draft (human installs it) | FR-3 | `docs/deploy-drafts/deploy.sh` |
 | FR-2b | Fetch hardening: placeholder rooms, guard fixes | FR-2 (merged) | `scripts/fetch-data/**`, which passes from FR-2 to FR-2b now that FR-2 is merged. Only one active owner at a time. |
-| FR-8 | Weekly schedule (user decision 2026-11-11) | FR-2b, FR-3, FR-4, FR-5 merged | Doer files:<br>- `.github/workflows/nightly-data.yml`<br>- `README.md`<br>- `lib/free-rooms/time.ts`, `lib/free-rooms/time.test.ts`<br>- `scripts/fetch-data/write.ts`, `scripts/fetch-data/write.test.ts`<br>- `components/free-rooms/free-rooms-app.test.tsx`<br>These pass from FR-2b, FR-3, FR-4 and FR-5 once they're merged. Only one active owner at a time.<br>QA files (updated by QA as part of FR-8 QA):<br>- `e2e/FR-5.spec.ts`, `e2e/V1-real-data.spec.ts`<br>- `docs/qa/FR-8/`<br>- the renamed evidence files listed below |
+| FR-8 | Weekly schedule (user decision 2026-11-11) | FR-2b, FR-3, FR-4, FR-5 merged | Doer files:<br>- `.github/workflows/nightly-data.yml`<br>- `README.md`<br>- `lib/free-rooms/time.ts`, `lib/free-rooms/time.test.ts`<br>- `scripts/fetch-data/write.ts`, `scripts/fetch-data/write.test.ts`<br>- `components/free-rooms/free-rooms-app.test.tsx`<br>- `components/free-rooms/format.test.ts` (comments only)<br>These pass from FR-2b, FR-3, FR-4 and FR-5 once they're merged. Only one active owner at a time.<br>QA files (updated by QA as part of FR-8 QA):<br>- `e2e/FR-5.spec.ts`, `e2e/V1-real-data.spec.ts`<br>- `docs/qa/FR-8/`<br>- the renamed evidence files listed below |
 
 ### FR-8 — Weekly schedule (revision 2, after vp-product FAIL)
 **Decided by:** the user on 2026-11-11, including both thresholds.
@@ -182,7 +182,7 @@ Size budget: about 2–3 MB minified. FR-2 warns if the file is over 5 MB.
   - the header comment (line 1)
   - the issue body text: "The weekly data run found terms with no academic calendar file…" (line 103)
   - the commit message `data: weekly schedule update (YYYY-MM-DD)` (line 195).
-- **README:** every nightly, 48 h and 72 h, or 3-day statement becomes weekly, 24 h and 360 h, or 15 days. Add a "Switch back to nightly" section covering the cron, `HEARTBEAT_MS` and `STALE_AFTER_MS`, and the tests that pin them.
+- **README:** every nightly, 48 h and 72 h, or 3-day statement becomes weekly, 24 h and 360 h, or 15 days. Add a `### Switch back to nightly` subsection (under the existing weekly-update `##` heading, so FR-3 AC8 still counts seven `##` headings) covering the cron, `HEARTBEAT_MS` and `STALE_AFTER_MS`, and the tests that pin them.
 
 **Tests to rewrite (exact)**
 - `lib/free-rooms/time.test.ts:85` and `:89`: exactly 360 h → `isStale` false; 360 h + 1 min → true (FR-4 AC12).
@@ -193,11 +193,11 @@ Size budget: about 2–3 MB minified. FR-2 warns if the file is over 5 MB.
   - 383 h → "15 days ago" (rounded down)
   - 384 h → "16 days ago"
 - `components/free-rooms/free-rooms-app.test.tsx:389–410`: check that the clock-to-`generatedAt` gap is still > 360 h. Adjust the fixture if not.
-- There is no `lib/free-rooms/format.test.ts`. The `formatMinutes` tests live in `time.test.ts`, which FR-8 owns, and need no change beyond `:85`/`:89`.
+- `components/free-rooms/format.test.ts`: fix only the comments that cite 73 h, 95 h or 96 h so they describe the new 360 h boundaries. No assertion changes.
 
 **QA updates (by QA, as part of FR-8 QA)**
 - `e2e/FR-5.spec.ts:238–252` (AC11): boundaries at 359 h (no banner), 361 h and 383 h ("15 days ago").
-- `e2e/FR-5.spec.ts:317–326` (AC13b): move `generatedAt` at least 361 h before 2026-12-15, and fix the comment at `:319`.
+- `e2e/FR-5.spec.ts:317–326` (AC13b): the AC13b clock is 2026-12-18T15:00Z, so move `generatedAt` to at least 361 h before it (no later than 2026-12-03T14:00Z), and fix the comment at `:319`.
 - `e2e/V1-real-data.spec.ts:188–198`: a 14-day-old mock shows no banner; a 16-day-old mock shows "…16 days ago…".
 - Renamed evidence (old file deleted, new one captured):
   - `docs/qa/FR-5/AC11-stale-73h-desktop.png` → `AC11-stale-361h-desktop.png`
@@ -216,7 +216,7 @@ Size budget: about 2–3 MB minified. FR-2 warns if the file is over 5 MB.
   No match on the header comment, the issue body or the commit message.
 - [ ] AC5: `grep -niE "nightly|every day|48 h|48 hours|72 h|3 days" README.md` matches only:
   - lines naming the historical file or job (`nightly-data.yml`, `Actions → nightly-data`)
-  - lines inside the "Switch back to nightly" section.
+  - lines inside the `### Switch back to nightly` subsection, from that heading up to the next `##` or `###` heading.
 - [ ] AC6: `grep -n "72" lib/free-rooms/time.ts` prints nothing (constant and doc comment updated).
 - [ ] AC7: `npm run check` passes.
 - [ ] AC8 (QA): `npx playwright test e2e/FR-5.spec.ts e2e/V1-real-data.spec.ts` passes against a local `npm run build && npm start` with the new boundaries. The renamed evidence files exist, and the old names are gone.

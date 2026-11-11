@@ -83,7 +83,7 @@ Merging this workflow to `main` on GitHub starts the weekly schedule. So **befor
    - why a failure leaves last week's data in place
    - the 15-day stale banner: one missed week shows nothing, two missed weeks show the banner
    - how to run it manually (Actions → nightly-data → Run workflow; only from `main` publishes)
-   - **how to switch back to nightly** (its own section): change three values together:
+   - **how to switch back to nightly**, as a `### Switch back to nightly` subsection under this section's existing `##` heading (not a new `##`, so AC8 stays at seven `##` headings). It changes three values together:
      - the cron to `0 8 * * *`
      - `HEARTBEAT_MS` in `scripts/fetch-data/write.ts` to 48 h
      - `STALE_AFTER_MS` in `lib/free-rooms/time.ts` to 72 h
