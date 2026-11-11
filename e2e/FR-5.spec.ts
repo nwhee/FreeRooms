@@ -235,20 +235,22 @@ test.describe("FR-5 against the fixture", () => {
     await page.screenshot({ path: `${SHOTS}/AC10-header-desktop.png`, animations: "disabled" });
   });
 
-  test("AC11 stale banner at 73 h and 95 h, not at 71 h", async ({ page }) => {
-    const stale = page.getByText("This data was last updated 3 days ago and may be out of date.");
-    await open(page, new Date(GENERATED_AT + 71 * HOUR));
-    await expect(stale).toHaveCount(0);
-    await page.clock.setSystemTime(new Date(GENERATED_AT + 73 * HOUR));
+  test("AC11 stale banner: none at 359 h, 15 days at 361 h and 383 h, 16 days at 384 h", async ({ page }) => {
+    // FR-8 (user decision 2026-11-11): stale means more than 360 h (15 days) old.
+    const stale15 = page.getByText("This data was last updated 15 days ago and may be out of date.");
+    await open(page, new Date(GENERATED_AT + 359 * HOUR));
+    await expect(page.getByText(/This data was last updated/)).toHaveCount(0);
+    await page.screenshot({ path: `${SHOTS}/AC11-no-stale-359h-desktop.png`, fullPage: true, animations: "disabled" });
+    await page.clock.setSystemTime(new Date(GENERATED_AT + 361 * HOUR));
     await page.reload();
-    await expect(stale).toBeVisible();
-    await page.screenshot({ path: `${SHOTS}/AC11-stale-73h-desktop.png`, fullPage: true, animations: "disabled" });
-    await page.clock.setSystemTime(new Date(GENERATED_AT + 95 * HOUR));
+    await expect(stale15).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/AC11-stale-361h-desktop.png`, fullPage: true, animations: "disabled" });
+    await page.clock.setSystemTime(new Date(GENERATED_AT + 383 * HOUR));
     await page.reload();
-    await expect(stale).toBeVisible();
-    await page.clock.setSystemTime(new Date(GENERATED_AT + 97 * HOUR));
+    await expect(stale15).toBeVisible();
+    await page.clock.setSystemTime(new Date(GENERATED_AT + 384 * HOUR));
     await page.reload();
-    await expect(page.getByText("This data was last updated 4 days ago and may be out of date.")).toBeVisible();
+    await expect(page.getByText("This data was last updated 16 days ago and may be out of date.")).toBeVisible();
   });
 
   for (const [label, width] of WIDTHS) {
@@ -316,11 +318,12 @@ test.describe("FR-5 against the fixture", () => {
 
   test("AC13b banners use role status and never alert", async ({ page }) => {
     await open(page, new Date("2026-12-18T15:00:00Z"));
-    // Stale (3 days after a generatedAt moved to 12-15) plus both exam periods.
+    // Stale (generatedAt moved to 12-03 14:00Z, 361 h before the 12-18 15:00Z clock) plus both exam periods.
     await page.unrouteAll();
-    await serveData(page, (data) => (data.generatedAt = "2026-12-15T07:00:00.000Z"));
+    await serveData(page, (data) => (data.generatedAt = "2026-12-03T14:00:00.000Z"));
     await page.reload();
     await expect(banners(page)).toHaveCount(3);
+    await expect(banners(page).first()).toHaveText("This data was last updated 15 days ago and may be out of date.");
     await expect(alerts(page)).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/AC13b-stale-and-exam-status-desktop.png`, fullPage: true, animations: "disabled" });
   });
