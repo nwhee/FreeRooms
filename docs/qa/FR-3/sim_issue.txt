@@ -1,0 +1,20 @@
+===== warnings, none open: exit 0
+gh label create calendar-missing --force --color D93F0B --description A term has no academic calendar file in data/calendar/
+gh issue list --label calendar-missing --state open --limit 1 --json number --jq .[0].number // empty
+gh issue create --title Academic calendar file missing --label calendar-missing --body-file /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/tmps2ai5qkz/calendar-issue-body.md
+
+===== warnings, #7 open: exit 0
+gh label create calendar-missing --force --color D93F0B --description A term has no academic calendar file in data/calendar/
+gh issue list --label calendar-missing --state open --limit 1 --json number --jq .[0].number // empty
+gh issue edit 7 --body-file /var/folders/cy/h9mpdhtj6jj2h8586086qv4m0000gn/T/tmp__ag5j4v/calendar-issue-body.md
+Updated issue #7.
+
+===== no warnings, #7 open: exit 0
+gh issue list --label calendar-missing --state open --limit 1 --json number --jq .[0].number // empty
+gh issue close 7 --comment Calendar warnings cleared by run https://github.com/nwhee/FreeRooms/actions/runs/123.
+Closed issue #7.
+
+===== no warnings, none open: exit 0
+gh issue list --label calendar-missing --state open --limit 1 --json number --jq .[0].number // empty
+No calendar warnings and no open calendar-missing issue.
+

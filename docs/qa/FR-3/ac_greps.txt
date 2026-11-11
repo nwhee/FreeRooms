@@ -1,0 +1,24 @@
+--- AC2 grep 1 (expect empty)
+--- AC2 grep 2 (expect empty)
+--- AC2 grep 3 (expect empty)
+--- AC4 '|| true' / continue-on-error (expect empty)
+--- AC5
+192:          git commit -m "data: nightly schedule update ($(TZ=America/New_York date +%F))"
+193:          if ! git push origin data; then
+195:            git pull --rebase origin data
+196:            git push origin data
+--- AC7a
+9:#   publish         contents: write  commits schedule.json to `data` (runs no npm code)
+11:# `publish` and `calendar-issue` only run when the run publishes: always for the
+12:# schedule, and for workflow_dispatch only when the `publish` input is true.
+22:      publish: { description: "Push to the data branch and update the calendar issue", type: boolean, default: true }
+87:            echo "schedule.json changed (or the data branch is missing); it will be published."
+90:            echo "schedule.json is unchanged; nothing to publish."
+119:      - name: Test run (publish false) - print what would be written
+120:        if: github.event_name == 'workflow_dispatch' && !inputs.publish
+126:          echo "publish is false: skipping the push to the data branch (changed=$CHANGED) and the calendar issue."
+138:      - name: Upload schedule.json for the publish job
+139:        if: steps.compare.outputs.changed == 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish)
+147:  publish:
+149:    if: needs.fetch.outputs.changed == 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish)
+201:    if: github.event_name != 'workflow_dispatch' || inputs.publish

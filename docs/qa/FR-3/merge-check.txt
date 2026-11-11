@@ -1,0 +1,28 @@
+
+> freerooms@0.1.0 check
+> npm run typecheck && npm run lint && npm run test
+
+
+> freerooms@0.1.0 typecheck
+> tsc --noEmit
+
+
+> freerooms@0.1.0 lint
+> eslint .
+
+
+> freerooms@0.1.0 test
+> vitest run
+
+
+ RUN  v5.1.0 /private/tmp/claude-501/-Users-jonathanding-Documents-Coding-VSCode-Projects-Claude-FreeRooms/28668046-e5e5-4d14-bbe6-a3b2c151283e/scratchpad/qa-fr3/merge
+
+
+ Test Files  23 passed (23)
+      Tests  413 passed (413)
+   Start at  03:59:24
+   Duration  4.23s (tests 40%, setup 20%, import 15%, transform 13%, environment 11%, worker 1%)
+
+    Isolate  23 workers spawned · ~141ms startup each (spawn + environment, per file)
+             at least ~323ms faster with isolate: false — reuses workers across files instead of one per file
+
