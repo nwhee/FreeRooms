@@ -29,7 +29,7 @@ A single page at `/`, a client component that fetches the schedule once **at run
    - With the switch on, busy cards also appear, styled differently, with "In use until 11:35 AM".
    - Buildings with no visible rooms are hidden.
 7. **Banners** (shadcn `Alert`, above the results; more than one can show):
-   - **Stale** (`isStale`): "This data was last updated N days ago and may be out of date." N = `floor((now − generatedAt) / 24 h)`, so it's always ≥ 8 when this banner shows (threshold 192 h, from FR-4's `isStale`; FR-5 doesn't hard-code it).
+   - **Stale** (`isStale`): "This data was last updated N days ago and may be out of date." N = `floor((now − generatedAt) / 24 h)`, so it's always ≥ 15 when this banner shows (threshold 360 h, from FR-4's `isStale`; FR-5 doesn't hard-code it).
    - **No-class day** (`dayContext.noClass`): "No classes at <campus> on <Wed, Nov 11> (<label>). Rooms show as free, but buildings may be closed."
    - **Exam period** (per active period, text taken from the data `label`, no part codes hard-coded): "<label>: exams aren't in this data, so free rooms may be in use." FR-6 labels are "Fall final exam period", "Fall Law exam period" and so on.
    - **Outside coverage** (`!inCoverage`): "No classes are scheduled on this date in the data we have (covers <term ranges>)."
@@ -65,7 +65,7 @@ Component tests (Vitest + Testing Library, jsdom) use a fixture `components/free
 - [ ] AC9: The query "snell" shows only Snell Library rooms. "sl 117" shows SL-117. A query with no matches shows "No rooms match "<query>"."
 - [ ] AC10: The header shows the fixture's term descriptions and its formatted `generatedAt`.
 - [ ] AC11: Each banner appears exactly when its condition holds:
-  - stale: not shown at 191 h after `generatedAt`; at 193 h reads "8 days ago"; at 215 h still reads "8 days ago" (floor); at 216 h reads "9 days ago"
+  - stale: not shown at 359 h after `generatedAt`; at 361 h reads "15 days ago"; at 383 h still reads "15 days ago" (floor); at 384 h reads "16 days ago"
   - no-class: BOS on 2026-11-11; not TOR that day
   - exam: 2026-12-15 shows "Fall final exam period: …"; 2026-12-08 shows "Fall Law exam period: …"
   - outside coverage: 2026-12-25

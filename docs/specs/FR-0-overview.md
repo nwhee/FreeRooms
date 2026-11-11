@@ -24,7 +24,7 @@ code change.
 3. As a student, I search "snell" and see only Snell Library rooms.
 4. As a student at the Vancouver or London campus, "now" and the times shown are my campus's local time.
 5. As a student on a holiday or during finals, a banner tells me the class schedule doesn't apply (or might not), so I'm not misled.
-6. As a student, I can see which terms the data covers and when it was last updated. I get a warning if it's more than 8 days old, or if a term's room assignments are incomplete.
+6. As a student, I can see which terms the data covers and when it was last updated. I get a warning if it's more than 15 days old, or if a term's room assignments are incomplete.
 7. As the maintainer, I never touch the code when Fall turns into Spring. Once a year I add one calendar file. If I forget, a GitHub issue reminds me.
 
 ## Corrections to the brief
@@ -71,7 +71,12 @@ All dates and times are **campus-local wall-clock**: a date `D` as `YYYY-MM-DD` 
 - **In coverage:** D falls inside at least one `terms[]` range.
 - **Calendar known:** a term covering D has its year prefix (first 4 digits of `code`) in `calendar.termYears`.
 - **Incomplete room assignment:** a term covering D has `meetingCount > 0` and `roomedMeetingCount / meetingCount < 0.80`.
-- **Stale:** `now − generatedAt > 192 hours` (8 days), measured with the viewer's clock. This was 72 h until the user switched the data job to weekly on 2026-11-11 (FR-8). Together with FR-2's 144 h heartbeat and the Monday cron, the banner appears only after a weekly run has been missed or has failed.
+- **Stale:** `now − generatedAt > 360 hours` (15 days), measured with the viewer's clock. The user decided this on 2026-11-11 when the data job became weekly (FR-8); it was 72 h before.
+  - **Freshness rule:** heartbeat + cadence + slack < stale threshold. Here that's 24 h heartbeat (FR-2) + 168 h weekly cadence + cron delay ≪ 360 h.
+  - Because the heartbeat (24 h) is shorter than the cadence, **every healthy weekly run rewrites the file**. So `generatedAt` is at most about 168 h old while the job is healthy.
+  - **One** missed or failed week: the age reaches about 336 h plus delay, still under 360 h. No banner.
+  - **Two** missed weeks in a row: the banner shows from day 15.
+  - The slack for GitHub cron delay is 360 − 336 = 24 h.
 
 ## Data contract (`schedule.json`, schemaVersion 1)
 FR-2 writes one minified file:
@@ -163,25 +168,60 @@ Size budget: about 2–3 MB minified. FR-2 warns if the file is over 5 MB.
 | FR-3 | Weekly data workflow + README (file still named `nightly-data.yml`) | FR-2 | `.github/workflows/nightly-data.yml`, `README.md` |
 | FR-7 | Deploy script draft (human installs it) | FR-3 | `docs/deploy-drafts/deploy.sh` |
 | FR-2b | Fetch hardening: placeholder rooms, guard fixes | FR-2 (merged) | `scripts/fetch-data/**`, which passes from FR-2 to FR-2b now that FR-2 is merged. Only one active owner at a time. |
-| FR-8 | Weekly schedule (user decision 2026-11-11) | FR-3, FR-4, FR-2b merged | `.github/workflows/nightly-data.yml`, `README.md`, `lib/free-rooms/time.ts`, `lib/free-rooms/time.test.ts`, `scripts/fetch-data/write.ts`, `scripts/fetch-data/write.test.ts`. These pass from FR-3, FR-4 and FR-2b to FR-8 once those are merged. Only one active owner at a time. |
+| FR-8 | Weekly schedule (user decision 2026-11-11) | FR-2b, FR-3, FR-4, FR-5 merged | Doer files:<br>- `.github/workflows/nightly-data.yml`<br>- `README.md`<br>- `lib/free-rooms/time.ts`, `lib/free-rooms/time.test.ts`<br>- `scripts/fetch-data/write.ts`, `scripts/fetch-data/write.test.ts`<br>- `components/free-rooms/free-rooms-app.test.tsx`<br>These pass from FR-2b, FR-3, FR-4 and FR-5 once they're merged. Only one active owner at a time.<br>QA files (updated by QA as part of FR-8 QA):<br>- `e2e/FR-5.spec.ts`, `e2e/V1-real-data.spec.ts`<br>- `docs/qa/FR-8/`<br>- the renamed evidence files listed below |
 
-### FR-8 — Weekly schedule
-- **Decided by:** the user, 2026-11-11.
-- **Thresholds:** the manager's recommendation, which the user can override.
-- **Change:**
-  - The cron goes from `0 8 * * *` to `0 8 * * 1` (Mondays 08:00 UTC). `workflow_dispatch` is unchanged.
-  - `STALE_AFTER_MS` goes from 72 h to **192 h** (`lib/free-rooms/time.ts`).
-  - `HEARTBEAT_MS` goes from 48 h to **144 h** (`scripts/fetch-data/write.ts`).
-  - Each threshold stays a single named constant in its module.
-  - The workflow file name and the `nightly-data` concurrency group stay as they are (historical names).
-  - The commit message wording becomes `data: weekly schedule update (YYYY-MM-DD)`.
-  - The README gets the "Weekly update" section and the switch-back-to-nightly instructions from FR-3.
-- **Acceptance criteria:** FR-3 AC1 (cron) and AC8 (README), FR-2 AC8 (143 h / 145 h), FR-4 AC12 (192 h / +1 min), and FR-5 AC11 (191 h / 193 h / 215 h / 216 h), plus:
-  - `grep -rnE "(72|48) \* 60" lib/free-rooms scripts/fetch-data` prints nothing.
-  - `npm run check` passes.
-- **Component tests:** no FR-5 component test exists yet (`components/free-rooms/` isn't built), so FR-8 owns none. FR-5 builds against the 192 h value and must not hard-code it; it takes it from `isStale`. If FR-5 merges before FR-8, any FR-5 test that pins 72 h joins FR-8's owned files.
+### FR-8 — Weekly schedule (revision 2, after vp-product FAIL)
+**Decided by:** the user on 2026-11-11, including both thresholds.
 
-Waves: **1:** FR-1 → **2:** FR-4 and FR-6 in parallel → **3:** FR-2 and FR-5 in parallel → **4:** FR-3 → **5:** FR-7.
+**Change**
+- **Cron:** `0 8 * * *` → `0 8 * * 1` (Mondays 08:00 UTC). `workflow_dispatch` is unchanged.
+- **Stale threshold:** `STALE_AFTER_MS` (`lib/free-rooms/time.ts:9`) goes from 72 h to **360 h**. Its doc comment (`time.ts:71`) now says "more than 360 hours (15 days)".
+- **Heartbeat:** `HEARTBEAT_MS` (`scripts/fetch-data/write.ts:12`) goes from 48 h to **24 h**, with the write rule `>= 24 h`. Every weekly run therefore writes the file. See the freshness rule under "Definitions → Stale".
+- Each threshold stays a single named constant in its module.
+- **Historical names:** the workflow `name: nightly-data`, the `concurrency: group: nightly-data` and the file name stay. Everything else in the workflow becomes weekly:
+  - the header comment (line 1)
+  - the issue body text: "The weekly data run found terms with no academic calendar file…" (line 103)
+  - the commit message `data: weekly schedule update (YYYY-MM-DD)` (line 195).
+- **README:** every nightly, 48 h and 72 h, or 3-day statement becomes weekly, 24 h and 360 h, or 15 days. Add a "Switch back to nightly" section covering the cron, `HEARTBEAT_MS` and `STALE_AFTER_MS`, and the tests that pin them.
+
+**Tests to rewrite (exact)**
+- `lib/free-rooms/time.test.ts:85` and `:89`: exactly 360 h → `isStale` false; 360 h + 1 min → true (FR-4 AC12).
+- `scripts/fetch-data/write.test.ts:44–47`: same content at 23 h → not rewritten; at 25 h → rewritten (FR-2 AC8).
+- `components/free-rooms/free-rooms-app.test.tsx:296–311`, matching FR-5 AC11:
+  - 359 h → no stale banner
+  - 361 h → "15 days ago"
+  - 383 h → "15 days ago" (rounded down)
+  - 384 h → "16 days ago"
+- `components/free-rooms/free-rooms-app.test.tsx:389–410`: check that the clock-to-`generatedAt` gap is still > 360 h. Adjust the fixture if not.
+- There is no `lib/free-rooms/format.test.ts`. The `formatMinutes` tests live in `time.test.ts`, which FR-8 owns, and need no change beyond `:85`/`:89`.
+
+**QA updates (by QA, as part of FR-8 QA)**
+- `e2e/FR-5.spec.ts:238–252` (AC11): boundaries at 359 h (no banner), 361 h and 383 h ("15 days ago").
+- `e2e/FR-5.spec.ts:317–326` (AC13b): move `generatedAt` at least 361 h before 2026-12-15, and fix the comment at `:319`.
+- `e2e/V1-real-data.spec.ts:188–198`: a 14-day-old mock shows no banner; a 16-day-old mock shows "…16 days ago…".
+- Renamed evidence (old file deleted, new one captured):
+  - `docs/qa/FR-5/AC11-stale-73h-desktop.png` → `AC11-stale-361h-desktop.png`
+  - `docs/qa/V1/4-stale-4-days-desktop.png` → `4-stale-16-days-desktop.png`
+  - the FR-8 report goes in `docs/qa/FR-8/report.md`.
+
+**Acceptance criteria**
+- [ ] AC1: FR-3 AC1 (one cron line, `0 8 * * 1`) and FR-3 AC8 (README) pass.
+- [ ] AC2: FR-2 AC8 (23 h / 25 h), FR-4 AC12 (360 h / +1 min) and FR-5 AC11 (359 / 361 / 383 / 384 h) pass, via the exact tests above.
+- [ ] AC3: `grep -rnE "(72|48) \* 60" lib/free-rooms scripts/fetch-data` prints nothing.
+- [ ] AC4: `grep -niE "nightly" .github/workflows/nightly-data.yml` matches only:
+  - the `name: nightly-data` line
+  - the `group: nightly-data` line
+  - comment lines that explicitly say the name is historical.
+
+  No match on the header comment, the issue body or the commit message.
+- [ ] AC5: `grep -niE "nightly|every day|48 h|48 hours|72 h|3 days" README.md` matches only:
+  - lines naming the historical file or job (`nightly-data.yml`, `Actions → nightly-data`)
+  - lines inside the "Switch back to nightly" section.
+- [ ] AC6: `grep -n "72" lib/free-rooms/time.ts` prints nothing (constant and doc comment updated).
+- [ ] AC7: `npm run check` passes.
+- [ ] AC8 (QA): `npx playwright test e2e/FR-5.spec.ts e2e/V1-real-data.spec.ts` passes against a local `npm run build && npm start` with the new boundaries. The renamed evidence files exist, and the old names are gone.
+
+Waves: **1:** FR-1 → **2:** FR-4 and FR-6 in parallel → **3:** FR-2 and FR-5 in parallel → **4:** FR-3 (and FR-2b) → **5:** FR-7 → **6:** FR-8 (after FR-2b, FR-3, FR-4 and FR-5 have merged).
 
 The decision log is in `docs/decisions.md`.
 

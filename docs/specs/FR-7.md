@@ -40,4 +40,4 @@ An agent drafts `docs/deploy-drafts/deploy.sh`. A human reviews it and copies it
 - `docs/deploy-drafts/deploy.sh`
 
 ## Open questions
-1. Should `deploy.sh` also confirm that the data is fresh (under the 8-day stale threshold) before deploying? **No.** Stale data is a data-job problem, not a reason to block a code deploy. The UI already warns about it.
+1. Should `deploy.sh` also confirm that the data is fresh (under the 15-day stale threshold) before deploying? **No.** Stale data is a data-job problem, not a reason to block a code deploy. The UI already warns about it.

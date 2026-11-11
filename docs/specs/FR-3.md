@@ -79,11 +79,11 @@ Merging this workflow to `main` on GitHub starts the weekly schedule. So **befor
    - why the file and job are still called `nightly-data` (historical)
    - the three jobs and their permissions
    - the `data` branch and the runtime URL
-   - the write rule (real changes, plus a 6-day / 144 h heartbeat)
+   - the write rule (real changes, plus a 24 h heartbeat, so every weekly run writes)
    - why a failure leaves last week's data in place
-   - the 8-day stale banner
+   - the 15-day stale banner: one missed week shows nothing, two missed weeks show the banner
    - how to run it manually (Actions → nightly-data → Run workflow; only from `main` publishes)
-   - **how to switch back to nightly:** change three values together:
+   - **how to switch back to nightly** (its own section): change three values together:
      - the cron to `0 8 * * *`
      - `HEARTBEAT_MS` in `scripts/fetch-data/write.ts` to 48 h
      - `STALE_AFTER_MS` in `lib/free-rooms/time.ts` to 72 h
