@@ -131,7 +131,16 @@ Merging this workflow to `main` on GitHub starts the weekly schedule. So **befor
   - No `calendar-missing` issue was created or changed.
   - A second dispatch from the same test branch with `publish: true` also skips both jobs, because of the ref guard.
   - (The real open, update and close behaviour is exercised by the first scheduled run after a calendar actually goes missing. The issue-job logic is kept small and reviewed by inspection.)
-- [ ] AC8: `README.md` contains all seven headings above. Its commands match the `package.json` script names, and it includes the re-enable-workflow instruction, the switch-back-to-nightly instruction (cron plus both thresholds, naming `HEARTBEAT_MS` and `STALE_AFTER_MS`), and the pre-push robots.txt and policy check.
+- [ ] AC8: `README.md` has exactly these seven `##` headings, matching the seven numbered README sections above:
+  1. What it is
+  2. Local dev
+  3. Weekly update
+  4. Semester switch
+  5. Yearly chore
+  6. Production
+  7. Data contract
+
+  The wording may vary, but the count and order may not. Its commands match the `package.json` script names, and it includes the re-enable-workflow instruction, the switch-back-to-nightly instruction (cron plus both thresholds, naming `HEARTBEAT_MS` and `STALE_AFTER_MS`), and the pre-push robots.txt and policy check.
 - [ ] AC9: `npm run check` passes.
 
 ## Edge cases
