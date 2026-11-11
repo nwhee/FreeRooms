@@ -1,7 +1,7 @@
 # FR-3 — Nightly data workflow and README
 
-**Status:** approved by user 2026-11-09 (revision 4: three-job least-privilege workflow, team consensus 2026-11-10)
-**Owner:** product-manager · **Approved by:** vp-product, <user>. The revision 4 changes are by team consensus (vp-product recommended them; security-reviewer called them stricter).
+**Status:** revision 5, corrected to match the build by user decision 2026-11-11
+**Owner:** product-manager · **Approved by:** user (2026-11-09 and 2026-11-11). On revision 4, vp-product endorsed the content but asked for user sign-off, and security-reviewer called it stricter. The user gave that sign-off by deciding on 2026-11-11 that the spec follows the build.
 **Depends on:** FR-2 · **Overview:** `docs/specs/FR-0-overview.md`
 
 > **Deploy model DECIDED by user 2026-11-09.** Data is published to a dedicated `data`
@@ -32,18 +32,18 @@ The data must refresh every night and follow the semester change with no human a
 - It's the only job that runs npm code.
 - Steps:
   1. `actions/checkout` of the triggering ref with `persist-credentials: false`. Set up `actions/setup-node` with `node-version-file: .nvmrc` and npm cache. Run `npm ci`.
-  2. **Seed:** if `git ls-remote --exit-code origin data` finds the branch, check out `ref: data` into a separate path (`persist-credentials: false`) and copy its `schedule.json` to `public/data/schedule.json`. Otherwise skip (first run).
+  2. **Seed:** `git fetch origin data`. If that succeeds, `git show origin/data:schedule.json > public/data/schedule.json`. If the branch doesn't exist (first run), skip. No second checkout is made.
   3. `npm run fetch-data`.
   4. Set the job output `changed` to `true` when `public/data/schedule.json` differs from the seeded copy or no seed existed, and `false` otherwise.
-  5. Print the calendar warnings (`jq '[.warnings[] | select(contains("has no academic calendar file"))]'`) and the issue body that `calendar-issue` would write. This gives dry runs their evidence.
-  6. Upload `public/data/schedule.json` as the artifact `schedule-json`.
+  5. Read the calendar warnings (`jq '[.warnings[] | select(contains("has no academic calendar file"))]'`) and set two job outputs: `calendar_warning_count` (an integer) and `issue_body` (the issue text). Print both. This gives dry runs their evidence.
+  6. **Only when `changed` is `true`:** upload `public/data/schedule.json` as the artifact `schedule`.
 
 **Job `publish`:**
 - `needs: fetch`, `permissions: { contents: write }`
 - It runs no npm code: no `npm`, `npx` or `node` scripts from the repo.
 - Runs only under the write guard and when `needs.fetch.outputs.changed == 'true'`.
 - Steps:
-  1. Download `schedule-json`.
+  1. Download the `schedule` artifact. `publish` is the only job that downloads it.
   2. Check out the `data` branch, or create it as an orphan if it's missing.
   3. Copy the file to `schedule.json` at the branch root.
   4. Commit as `github-actions[bot]` with the message `data: nightly schedule update (YYYY-MM-DD)`, where the date is `TZ=America/New_York date +%F`.
@@ -53,13 +53,19 @@ The data must refresh every night and follow the semester change with no human a
 - `needs: fetch`, `permissions: { issues: write }`
 - It runs no npm code and only runs under the write guard.
 - Steps:
-  1. Download `schedule-json` and read the calendar warnings with the `jq` filter above.
-  2. If there are any, find the open issue with label `calendar-missing` (create the label if missing, using `gh label create --force`). Update its body, or open one titled `Academic calendar file missing` if none is open.
-  3. If there are none and such an issue is open, close it with the comment `Calendar warnings cleared by run <run URL>.`
+  1. Read `needs.fetch.outputs.calendar_warning_count` and `needs.fetch.outputs.issue_body`. It downloads no artifact.
+  2. If the count is > 0, find the open issue with label `calendar-missing` (create the label if missing, using `gh label create --force`). Set its body to `issue_body`, or open one titled `Academic calendar file missing` with that body if none is open.
+  3. If the count is 0 and such an issue is open, close it with the comment `Calendar warnings cleared by run <run URL>.`
   4. Use `gh` with `GITHUB_TOKEN`.
 - **Accepted side effect:** `calendar-issue` runs alongside `publish`, not after it. So the issue can be updated even when the `data` push fails. That's fine: the warnings come from a successful fetch either way.
 
 Together the three jobs grant exactly what the earlier single job did (`contents: write` + `issues: write`), split so each job holds only what it needs.
+
+### Production prerequisite (before the first push to GitHub)
+Merging this workflow to `main` on GitHub starts the nightly schedule. So **before the first push to GitHub**:
+- The maintainer checks `https://nubanner.neu.edu/robots.txt` and Northeastern's acceptable-use policy (Policy 700 and any IT acceptable-use policy).
+- **The result is recorded in `docs/qa/FR-3/`:** what was checked, the date, and the conclusion.
+- If either forbids the nightly fetch, stop and raise it with the user. Don't push.
 
 ### README sections (required headings)
 1. **What it is:** the data source (public Banner class search, classes only).
@@ -83,7 +89,7 @@ Together the three jobs grant exactly what the earlier single job did (`contents
    - A human sets `NEXT_PUBLIC_DATA_URL=https://raw.githubusercontent.com/nwhee/FreeRooms/data/schedule.json` in Vercel once. The repo must stay public.
    - **The value is inlined at build time.** After setting or changing it, the human must redeploy through `scripts/deploy/deploy.sh` (FR-7) for it to take effect. A build without it prints a loud `WARNING: NEXT_PUBLIC_DATA_URL is not set`.
    - Test the workflow with `workflow_dispatch` and `publish: false`, or from a non-main branch.
-   - **Before the first push to GitHub:** check Banner's `robots.txt` and Northeastern's acceptable-use policy (see AC6). Merging to `main` starts the nightly schedule.
+   - **Before the first push to GitHub:** check Banner's `robots.txt` and Northeastern's acceptable-use policy, and record the result in `docs/qa/FR-3/` (see "Production prerequisite"). Merging to `main` starts the nightly schedule.
 7. **Data contract:** link to `docs/specs/FR-0-overview.md`.
 
 ## Acceptance criteria
@@ -96,7 +102,8 @@ Together the three jobs grant exactly what the earlier single job did (`contents
     - `calendar-issue`: `issues: write`, `needs: fetch`
   - no other permission anywhere
   - `npm` appears only in `fetch` (`npm`, `npx` and repo `node` scripts don't appear in `publish` or `calendar-issue`)
-  - `fetch` uploads the `schedule-json` artifact, and the other two download it.
+  - `fetch` uploads the `schedule` artifact only when `changed` is `true`, and only `publish` downloads it
+  - `fetch` exposes the outputs `changed`, `calendar_warning_count` and `issue_body`, and `calendar-issue` reads only those outputs (no artifact download).
 - [ ] AC2: These checks all print nothing:
   - `grep -nE "vercel|--prod" .github/workflows/nightly-data.yml`
   - `grep -n "secrets\." .github/workflows/nightly-data.yml | grep -v GITHUB_TOKEN`
@@ -105,7 +112,7 @@ Together the three jobs grant exactly what the earlier single job did (`contents
 - [ ] AC4: If `npm run fetch-data` exits 1, `fetch` fails (red), and `publish` and `calendar-issue` don't run. There's no `continue-on-error` and no `|| true` on that step.
 - [ ] AC5: The push step contains `git pull --rebase origin data` followed by exactly one retry push. The commit message date is computed with `TZ=America/New_York`.
 - [ ] AC6 (manual, done by the user, since this needs GitHub):
-  - **Prerequisite, before the first push of this workflow to GitHub:** the maintainer checks `https://nubanner.neu.edu/robots.txt` and Northeastern's acceptable-use policy (Policy 700 and any IT acceptable-use policy). They record the result in `docs/qa/FR-3/` (what was checked, the date, and the conclusion). If either forbids the nightly fetch, stop and raise it with the user.
+  - Requires the "Production prerequisite" above to be done and recorded in `docs/qa/FR-3/` first.
   - Then: a `workflow_dispatch` run on `main` with `publish: true` (the bootstrap, started by the human), on a repo with no `data` branch, finishes green and creates `data` with exactly one file, `schedule.json`.
   - `curl -s https://raw.githubusercontent.com/nwhee/FreeRooms/data/schedule.json | jq .schemaVersion` prints `1`.
   - `main` has no new commits.
