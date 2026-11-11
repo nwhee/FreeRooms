@@ -17,8 +17,13 @@ description: Default QA tester skill. How to run the app locally, check acceptan
 - Playwright tests in `e2e/<ticket-id>.spec.ts`, one `test()` per acceptance
   criterion, named after it.
 - Query by role and label, like a user would. Assert what's on screen.
-- Take a full-page screenshot per criterion into `docs/qa/<ticket-id>/`, at desktop
-  (1280px) and phone (390px) widths.
+- Screenshots only when needed, so they don't bloat the public repo. Take one when a
+  criterion is visual (layout, responsive width, contrast, focus, how a banner or state
+  looks) or to show a failure or finding. Checks of text, logic or data rely on the
+  Playwright assertions and the pasted summary, with no screenshot.
+- When you do take one, capture the relevant viewport or element, not the full page
+  (unless the full page is the point), into `docs/qa/<ticket-id>/`. Take both 1280px and
+  390px widths only when the criterion is about responsive layout.
 - For time-dependent features, fix the clock (`page.clock.setFixedTime`) instead of
   depending on today.
 - Run with `npx playwright test e2e/<ticket-id>.spec.ts`, and paste the summary into

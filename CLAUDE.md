@@ -39,7 +39,8 @@ Route every task through this list. Use the first row that matches.
    `node .claude/scripts/skills-for.mjs --reviewers <changed files>`. It lists who
    checks the change:
    - **First, `qa-tester`** (whenever code changed). It runs the app, checks every
-     acceptance criterion in a browser, and saves screenshots to `docs/qa/<ticket-id>/`.
+     acceptance criterion in a browser, and saves screenshots to `docs/qa/<ticket-id>/`
+     only for visual checks or failures.
      A QA FAIL goes back to the engineer before the reviewers start.
    - **Then, in parallel and in the same message:** always `vp-engineering` and
      `vp-product`, plus `security-reviewer` when sensitive files changed and
