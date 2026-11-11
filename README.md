@@ -156,6 +156,8 @@ Then update the tests that pin them:
 - `lib/free-rooms/time.test.ts`: the `isStale` boundaries (72 h false, 72 h + 1 min true).
 - `scripts/fetch-data/write.test.ts`: the `shouldWrite` heartbeat (47 h not rewritten,
   49 h rewritten).
+- `scripts/fetch-data/index.test.ts`: the same heartbeat hours in the end-to-end
+  "write rule (FR-2 AC8)" tests.
 - `components/free-rooms/free-rooms-app.test.tsx`: the stale-banner hours (71 h none,
   73 h and 95 h "3 days ago", 96 h "4 days ago").
 - `e2e/FR-5.spec.ts` and `e2e/V1-real-data.spec.ts`: the stale-banner boundaries.
