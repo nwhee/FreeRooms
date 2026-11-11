@@ -296,16 +296,17 @@ describe("AC11: banners", () => {
   const stale = /^This data was last updated \d+ days ago and may be out of date\.$/;
 
   it.each([
-    [73, "This data was last updated 3 days ago and may be out of date."],
-    [95, "This data was last updated 3 days ago and may be out of date."],
+    [361, "This data was last updated 15 days ago and may be out of date."],
+    [383, "This data was last updated 15 days ago and may be out of date."],
+    [384, "This data was last updated 16 days ago and may be out of date."],
   ])("stale: %i h after generatedAt", async (hours, text) => {
     setClock(GENERATED_AT + hours * HOUR);
     await renderApp();
     expect(statusTexts()).toContain(text);
   });
 
-  it("stale: not shown at 71 h", async () => {
-    setClock(GENERATED_AT + 71 * HOUR);
+  it("stale: not shown at 359 h", async () => {
+    setClock(GENERATED_AT + 359 * HOUR);
     await renderApp();
     expect(statusTexts().some((text) => stale.test(text))).toBe(false);
   });
@@ -386,7 +387,7 @@ describe("AC13: no free rooms", () => {
 
 describe("AC13b: roles", () => {
   it("informational banners are status, not alert", async () => {
-    setClock(Date.parse("2026-12-15T15:00:00Z")); // stale and inside the final exam period
+    setClock(Date.parse("2026-12-15T15:00:00Z")); // 656 h after generatedAt (stale past 360 h), inside the final exam period
     await renderApp();
     const statuses = screen.getAllByRole("status");
     expect(statuses.map((s) => s.textContent)).toEqual(

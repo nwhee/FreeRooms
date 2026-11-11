@@ -82,12 +82,12 @@ describe("weekdayBit", () => {
 describe("isStale (AC12)", () => {
   const generatedAt = "2026-11-09T07:00:00.000Z";
 
-  it("is false at exactly 72 h after generatedAt", () => {
-    expect(isStale(generatedAt, new Date("2026-11-12T07:00:00.000Z"))).toBe(false);
+  it("is false at exactly 360 h after generatedAt", () => {
+    expect(isStale(generatedAt, new Date("2026-11-24T07:00:00.000Z"))).toBe(false);
   });
 
-  it("is true at 72 h + 1 min", () => {
-    expect(isStale(generatedAt, new Date("2026-11-12T07:01:00.000Z"))).toBe(true);
+  it("is true at 360 h + 1 min", () => {
+    expect(isStale(generatedAt, new Date("2026-11-24T07:01:00.000Z"))).toBe(true);
   });
 
   it("throws a RangeError for an unparseable generatedAt", () => {

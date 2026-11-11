@@ -31,10 +31,12 @@ describe("format helpers", () => {
   });
 
   it("counts whole days, rounding down", () => {
+    // Day rounding only. These hours are not the stale threshold (360 h, FR-8), which
+    // free-rooms-app.test.tsx and time.test.ts pin.
     const generatedAt = "2026-11-18T07:00:00.000Z";
-    expect(daysSince(generatedAt, new Date("2026-11-21T08:00:00Z"))).toBe(3); // 73 h
-    expect(daysSince(generatedAt, new Date("2026-11-22T06:00:00Z"))).toBe(3); // 95 h
-    expect(daysSince(generatedAt, new Date("2026-11-22T07:00:00Z"))).toBe(4); // 96 h
+    expect(daysSince(generatedAt, new Date("2026-11-21T08:00:00Z"))).toBe(3); // 73 h: 3 days 1 h
+    expect(daysSince(generatedAt, new Date("2026-11-22T06:00:00Z"))).toBe(3); // 95 h: 3 days 23 h
+    expect(daysSince(generatedAt, new Date("2026-11-22T07:00:00Z"))).toBe(4); // 96 h: exactly 4 days
   });
 
   it("round-trips time input values", () => {

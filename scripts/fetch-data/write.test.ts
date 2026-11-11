@@ -41,10 +41,15 @@ describe("shouldWrite (FR-2 AC8)", () => {
   const at = (hours: number) => new Date(generatedAt + hours * 3_600_000);
   const later = (hours: number): ScheduleFile => ({ ...BASE, generatedAt: at(hours).toISOString() });
 
-  it("skips equal content under 48 h old and writes at 48 h", () => {
+  it("skips equal content 23 h old and rewrites it 25 h old", () => {
     const existing = { kind: "valid", schedule: BASE } as const;
-    expect(shouldWrite(existing, later(47.9), at(47.9))).toBe(false);
-    expect(shouldWrite(existing, later(48), at(48))).toBe(true);
+    expect(shouldWrite(existing, later(23), at(23))).toBe(false);
+    expect(shouldWrite(existing, later(25), at(25))).toBe(true);
+  });
+
+  it("rewrites equal content at exactly 24 h (the rule is >= HEARTBEAT_MS)", () => {
+    const existing = { kind: "valid", schedule: BASE } as const;
+    expect(shouldWrite(existing, later(24), at(24))).toBe(true);
   });
 
   it("ignores key order when comparing content", () => {
